@@ -251,14 +251,14 @@ export class App extends Component<Record<string, never>, AppState> {
    * `updated`, write through. Nothing mutates persisted state in place — which
    * is also what makes undo a matter of keeping the pre-mutation copy.
    */
-  edit(fn: (p: Project) => void, label?: string): void {
+  edit(fn: (p: Project) => void, label?: string, coalesceKey?: string): void {
     const before = this.proj();
     const lib = this.state.lib.map((p) => (p.id === this.state.curId ? clone(p) : p));
     const p = lib.find((x) => x.id === this.state.curId);
     if (!p) return;
     fn(p);
     p.updated = Date.now();
-    this.history.push(before);
+    this.history.push(before, coalesceKey);
     this.setState(
       { lib, canUndo: this.history.canUndo, canRedo: this.history.canRedo },
       () => {

@@ -77,7 +77,7 @@ export function Transport({ app }: { app: App }) {
         }}
       >
         <button
-          onClick={() => app.edit((pp) => void (pp.bpm = Math.max(30, pp.bpm - 1)))}
+          onClick={() => app.edit((pp) => void (pp.bpm = Math.max(30, pp.bpm - 1)), undefined, 'bpm')}
           aria-label="Decrease tempo"
           style={{
             width: 34,
@@ -103,7 +103,7 @@ export function Transport({ app }: { app: App }) {
           </div>
         </div>
         <button
-          onClick={() => app.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 1)))}
+          onClick={() => app.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 1)), undefined, 'bpm')}
           aria-label="Increase tempo"
           style={{
             width: 34,

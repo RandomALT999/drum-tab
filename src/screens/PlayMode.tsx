@@ -43,6 +43,7 @@ export function PlayMode({ app }: { app: App }) {
           alignItems: 'center',
           gap: 12,
           padding: '8px 14px 6px',
+          paddingTop: 'calc(8px + env(safe-area-inset-top))',
           flex: 'none',
         }}
       >

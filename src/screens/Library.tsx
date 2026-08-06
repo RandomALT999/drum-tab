@@ -16,6 +16,7 @@ export function Library({ app }: { app: App }) {
         width: '100%',
         maxWidth: 560,
         padding: '22px 18px 40px',
+        paddingTop: 'calc(22px + env(safe-area-inset-top))',
         paddingBottom: 'calc(40px + env(safe-area-inset-bottom))',
         display: 'flex',
         flexDirection: 'column',

@@ -37,6 +37,8 @@ export function Editor({ app }: { app: App }) {
           alignItems: 'center',
           gap: 10,
           padding: '12px 14px 11px',
+          // installed on iOS the app draws under the status bar
+          paddingTop: 'calc(12px + env(safe-area-inset-top))',
           borderBottom: '1px solid rgba(236,231,221,.12)',
           flex: 'none',
         }}
@@ -65,7 +67,8 @@ export function Editor({ app }: { app: App }) {
             value={p.title}
             onChange={(e) => {
               const v = e.target.value;
-              app.edit((pp) => void (pp.title = v));
+              // coalesced so a typed title is one undo step, not one per keystroke
+              app.edit((pp) => void (pp.title = v), undefined, 'title');
             }}
             placeholder="Untitled groove"
             style={{
