@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" rx="112" fill="#0d0d10"/>
+  <!-- five-line percussion staff -->
+  <g stroke="#F5AE4B" stroke-width="12" stroke-linecap="round" opacity="0.5">
+    <path d="M96 176h320"/>
+    <path d="M96 236h320"/>
+    <path d="M96 296h320"/>
+    <path d="M96 356h320"/>
+  </g>
+  <!-- x notehead (hi-hat) on the top space, with its stem -->
+  <g stroke="#F5AE4B" stroke-width="20" stroke-linecap="round">
+    <path d="M150 130l40 40M190 130l-40 40"/>
+  </g>
+  <path d="M198 140V330" stroke="#ece7dd" stroke-width="18" stroke-linecap="round"/>
+  <!-- filled notehead (snare) inside the staff -->
+  <ellipse cx="318" cy="326" rx="46" ry="34" transform="rotate(-20 318 326)" fill="#ece7dd"/>
+  <path d="M362 316V140" stroke="#ece7dd" stroke-width="18" stroke-linecap="round"/>
+  <!-- beam joining the two stems -->
+  <path d="M190 140h180" stroke="#ece7dd" stroke-width="30" stroke-linecap="butt"/>
+</svg>

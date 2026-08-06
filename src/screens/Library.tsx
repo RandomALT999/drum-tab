@@ -1,0 +1,154 @@
+import type { App } from '../App';
+import { ACCENT } from '../config';
+
+const meta = (p: import('../model/types').Project): string => {
+  const n = p.parts.reduce((a, q) => a + q.bars.length, 0);
+  return (
+    n + (n === 1 ? ' BAR' : ' BARS') + ' · ' + p.bpm + ' BPM · ' + new Date(p.updated).toLocaleDateString()
+  );
+};
+
+export function Library({ app }: { app: App }) {
+  const { lib } = app.state;
+  return (
+    <div
+      style={{
+        width: '100%',
+        maxWidth: 560,
+        padding: '22px 18px 40px',
+        paddingBottom: 'calc(40px + env(safe-area-inset-bottom))',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 16,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+        <div>
+          <div
+            style={{
+              font: '600 9px IBM Plex Mono,monospace',
+              letterSpacing: '.2em',
+              color: 'rgba(236,231,221,.4)',
+            }}
+          >
+            SHEETS
+          </div>
+          <div
+            style={{
+              font: '500 26px/1.1 Helvetica Neue,Helvetica,sans-serif',
+              letterSpacing: '-.02em',
+              marginTop: 6,
+            }}
+          >
+            Your library
+          </div>
+        </div>
+        <button
+          onClick={app.newProject}
+          style={{
+            height: 44,
+            padding: '0 16px',
+            background: ACCENT,
+            color: '#0d0d10',
+            borderRadius: 22,
+            display: 'flex',
+            alignItems: 'center',
+            font: '600 12px IBM Plex Mono,monospace',
+            letterSpacing: '.06em',
+            flex: 'none',
+          }}
+        >
+          + NEW
+        </button>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {lib.map((p) => (
+          <div
+            key={p.id}
+            style={{
+              background: '#17171c',
+              borderRadius: 12,
+              padding: '14px 15px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 14,
+            }}
+          >
+            <div
+              onClick={() => app.openProject(p.id)}
+              style={{ flex: 1, minWidth: 0, cursor: 'pointer' }}
+            >
+              <div
+                style={{
+                  font: '500 15px Helvetica Neue,Helvetica,sans-serif',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {p.title}
+              </div>
+              <div
+                style={{
+                  font: '400 10px IBM Plex Mono,monospace',
+                  letterSpacing: '.06em',
+                  color: 'rgba(236,231,221,.42)',
+                  marginTop: 5,
+                }}
+              >
+                {meta(p)}
+              </div>
+            </div>
+            <button
+              onClick={() => app.dupProject(p)}
+              aria-label="Duplicate sheet"
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: '#22222a',
+                display: 'grid',
+                placeItems: 'center',
+                font: '500 13px IBM Plex Mono,monospace',
+                color: 'rgba(236,231,221,.6)',
+                flex: 'none',
+              }}
+            >
+              ⧉
+            </button>
+            <button
+              onClick={() => app.delProject(p)}
+              disabled={lib.length < 2}
+              aria-label="Delete sheet"
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: '#22222a',
+                display: 'grid',
+                placeItems: 'center',
+                font: '500 14px IBM Plex Mono,monospace',
+                color: lib.length < 2 ? 'rgba(236,231,221,.2)' : 'rgba(236,231,221,.6)',
+                cursor: lib.length < 2 ? 'default' : 'pointer',
+                flex: 'none',
+              }}
+            >
+              ×
+            </button>
+          </div>
+        ))}
+      </div>
+
+      <div
+        style={{
+          font: '400 11px/1.7 IBM Plex Mono,monospace',
+          color: 'rgba(236,231,221,.3)',
+          marginTop: 4,
+        }}
+      >
+        Everything autosaves to this device.
+      </div>
+    </div>
+  );
+}

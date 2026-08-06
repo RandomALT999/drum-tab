@@ -1,0 +1,121 @@
+/* Self-hosted so the app works offline once installed. A fallback-font flash
+   would render garbage in place of noteheads, hence font-display:block on
+   Noto Music. Subset to the musical-symbols block plus digits (~25KB). */
+@font-face {
+  font-family: 'Noto Music';
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url('./fonts/noto-music-subset.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('./fonts/plex-mono-400.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('./fonts/plex-mono-500.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'IBM Plex Mono';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('./fonts/plex-mono-600.woff2') format('woff2');
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: #0d0d10;
+  color: #ece7dd;
+  font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+* {
+  box-sizing: border-box;
+}
+a {
+  color: oklch(0.8 0.14 72);
+  text-decoration: none;
+}
+a:hover {
+  color: oklch(0.88 0.12 72);
+}
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  text-align: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+input {
+  font: inherit;
+  color: inherit;
+}
+input[type='range'] {
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+  height: 26px;
+}
+input[type='range']::-webkit-slider-runnable-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(236, 231, 221, 0.2);
+}
+input[type='range']::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #ece7dd;
+  margin-top: -7.5px;
+}
+input[type='range']::-moz-range-track {
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(236, 231, 221, 0.2);
+}
+input[type='range']::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border: 0;
+  border-radius: 50%;
+  background: #ece7dd;
+}
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(236, 231, 221, 0.16);
+  border-radius: 4px;
+}
+@keyframes rise {
+  from {
+    transform: translateY(14px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Drag-to-move a note must not scroll the notation pane underneath it. */
+.staff {
+  touch-action: none;
+}
