@@ -40,3 +40,8 @@ jobs:
     steps:
       - id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          # Pages deployments for this repo have been sitting in
+          # deployment_queued for 9-15 minutes; the action's 10-minute default
+          # aborts and cancels them mid-queue, which then blocks the next one.
+          timeout: 1800000
