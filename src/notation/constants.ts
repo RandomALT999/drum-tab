@@ -103,9 +103,14 @@ export const SIGS: [number, number][] = [
   [9, 8],
 ];
 
+/**
+ * The bar's grid — the *feel*, not the note value. Straight bars are always at
+ * sixteenth resolution so a sixteenth can always be placed; how coarsely a tap
+ * snaps is decided by the selected note value instead (see `slotsFor`). An
+ * eighth-resolution grid only ever stopped sixteenths going in, so it's gone.
+ */
 export const SUBS = [
-  { s: 4, g: CH.d16, t: '16THS' },
-  { s: 2, g: CH.d8, t: '8THS' },
+  { s: 4, g: CH.d16, t: 'STRAIGHT' },
   { s: 3, g: CH.d8, t: 'TRIPLETS' },
 ];
 

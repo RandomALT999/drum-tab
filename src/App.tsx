@@ -20,7 +20,7 @@ import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
 import { NOTE0, PVBH, SIGS, SUBS, V, VBH, VBW, VI, yOf } from './notation/constants';
-import { slotW, xOf } from './notation/layout';
+import { slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
@@ -560,8 +560,16 @@ export class App extends Component<Record<string, never>, AppState> {
     };
   }
 
-  private slotAt(bar: Bar, ux: number): number {
-    return Math.max(0, Math.min(RES(bar) - 1, Math.round((ux - NOTE0) / slotW(bar))));
+  /**
+   * Nearest grid position for a pointer x, snapped to the note value being
+   * placed: quarters land on 1 2 3 4, eighths on 1 & 2 & …, sixteenths on
+   * 1 e & a …. Pass `d = 16` for things that want the raw grid (loop points).
+   */
+  private slotAt(bar: Bar, ux: number, d: NoteValue = this.state.dur): number {
+    const step = slotsFor(bar, d);
+    const raw = (ux - NOTE0) / slotW(bar);
+    const snapped = Math.round(raw / step) * step;
+    return Math.max(0, Math.min(RES(bar) - step, snapped));
   }
 
   /* ---------- note editing ---------- */
@@ -657,7 +665,7 @@ export class App extends Component<Record<string, never>, AppState> {
     const note = this.hitNote(bar, q.ux, q.uy);
     this.g = { barId: bar.id, x: e.clientX, y: e.clientY, ux: q.ux, uy: q.uy, note, moved: false };
     if (this.state.loopArm) {
-      const s = this.slotAt(bar, q.ux);
+      const s = this.slotAt(bar, q.ux, 16);
       const L = this.state.loop;
       if (!L || L.b) {
         this.setState({ loop: { a: { barId: bar.id, s }, b: null } });
@@ -678,7 +686,7 @@ export class App extends Component<Record<string, never>, AppState> {
     if (!g.moved && Math.hypot(e.clientX - (g.x ?? 0), e.clientY - (g.y ?? 0)) > 7) g.moved = true;
     if (!g.moved || !g.note) return;
     const q = this.pt(e);
-    const s = this.slotAt(bar, q.ux);
+    const s = this.slotAt(bar, q.ux, g.note.d);
     const v = this.nearVoice(q.uy).id;
     const d = this.state.drag;
     if (!d || d.s !== s || d.v !== v) this.setState({ drag: { barId: bar.id, noteId: g.note.id, v, s } });

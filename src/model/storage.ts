@@ -11,6 +11,22 @@ export interface Loaded {
   curId: string;
 }
 
+/**
+ * Bars used to be able to sit on an eighth-resolution grid, which made
+ * sixteenths impossible to place in them. Doubling the resolution is lossless —
+ * every existing slot maps to an even slot in the finer grid.
+ */
+function migrate(p: Project): void {
+  p.parts?.forEach((pt) =>
+    pt.bars?.forEach((b) => {
+      if (b.sub === 2) {
+        b.sub = 4;
+        b.notes.forEach((n) => (n.s *= 2));
+      }
+    }),
+  );
+}
+
 export function load(): Loaded {
   let lib: Project[] = [];
   let cur: string | null = null;
@@ -29,6 +45,7 @@ export function load(): Loaded {
     p0.title = 'Straight 8s';
     lib = [p0];
   }
+  lib.forEach(migrate);
   if (!cur || !lib.some((x) => x.id === cur)) cur = lib[0].id;
   return { lib, curId: cur };
 }

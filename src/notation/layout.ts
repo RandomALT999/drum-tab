@@ -37,6 +37,19 @@ export const beatW = (bar: Bar): number => SPAN / bar.n;
 export const slotW = (bar: Bar): number => beatW(bar) / bar.sub;
 export const xOf = (bar: Bar, s: number): number => NOTE0 + s * slotW(bar);
 
+/**
+ * How many grid slots one note of value `d` occupies.
+ *
+ * This is what ties the note value to the placement grid: on a straight bar
+ * (sub 4, one slot per sixteenth) a quarter spans 4 slots, an eighth 2, a
+ * sixteenth 1 — so quarters land on 1 2 3 4, eighths on 1 & 2 & …, and
+ * sixteenths on 1 e & a …. On a triplet bar one slot *is* an eighth triplet.
+ */
+export const slotsFor = (bar: Bar, d: number): number => {
+  if (bar.sub % 3 === 0 && bar.sub % 4 !== 0) return d <= 4 ? bar.sub : 1;
+  return Math.max(1, Math.round((bar.sub * 4) / d));
+};
+
 export interface Head {
   x: number;
   y: number;
@@ -98,7 +111,10 @@ export interface LayoutCtx {
   selId: string | null;
   acc: string;
   softAcc: string;
-  loop: { a: { barId: string; s: number }; b: { barId: string; s: number } | null } | null;
+  loop: {
+    a: { barId: string; s: number };
+    b: { barId: string; s: number } | null;
+  } | null;
   showBeats: boolean;
   play: boolean;
   /** previous bar in reading order — a meter change re-shows the time signature */
@@ -164,7 +180,11 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       if (n.a === 'open' && v.ring) rings.push({ x: r1(x), y: r1(y - 13), c });
       if (v.led) led.push('M' + r1(x - 13) + ' ' + y + 'h26');
       if (n.a === 'accent')
-        accents.push({ x: r1(x - ACDX), y: r1((v.up ? ACCUP : ACCDN) - ACDY), c });
+        accents.push({
+          x: r1(x - ACDX),
+          y: r1((v.up ? ACCUP : ACCDN) - ACDY),
+          c,
+        });
       if (n.a === 'ghost') {
         parens.push('M' + r1(x - 13) + ' ' + (y - 6) + 'q-3.5 6 0 12');
         parens.push('M' + r1(x + 13) + ' ' + (y - 6) + 'q3.5 6 0 12');
@@ -218,75 +238,103 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
         (c.hot ? stemsHot : stems).push('M' + c.sx + ' ' + (up ? c.bot : c.top) + 'V' + tip);
       });
 
-      const bm = cols.filter((c) => c.d >= 8);
-      if (bm.length > 1) {
-        const x0 = bm[0].sx;
-        const x1 = bm[bm.length - 1].sx;
-        beams.push({
-          x: r1(Math.min(x0, x1) - 0.9),
-          y: up ? UPEND : DNEND - BEAMH,
-          w: r1(Math.abs(x1 - x0) + 1.8),
-          c: bm.some((c) => c.hot) ? acc : IV,
-        });
-        // Secondary (16th) beam: a run of >=2 consecutive 16ths gets a full
-        // beam, an isolated 16th gets a partial stub pointing at its neighbour.
-        // This is what lets 8ths and 16ths mix freely inside one beat.
-        const y2 = up ? UPEND + BEAMSTEP : DNEND - BEAMH - BEAMSTEP;
-        let i = 0;
-        while (i < bm.length) {
-          if (bm[i].d < 16) {
-            i++;
-            continue;
-          }
-          let j = i;
-          while (j + 1 < bm.length && bm[j + 1].d >= 16) j++;
-          if (j > i) {
-            const a0 = bm[i].sx;
-            const a1 = bm[j].sx;
-            beams.push({
-              x: r1(Math.min(a0, a1) - 0.9),
-              y: y2,
-              w: r1(Math.abs(a1 - a0) + 1.8),
-              c: IV,
-            });
-          } else {
-            const c = bm[i];
-            const left = i > 0;
-            const w = Math.min(
-              STUB,
-              Math.abs(left ? c.sx - bm[i - 1].sx : bm[i + 1].sx - c.sx) * 0.5,
-            );
-            beams.push({ x: r1(left ? c.sx - 0.9 - w : c.sx - 0.9), y: y2, w: r1(w + 1.8), c: IV });
-          }
-          i = j + 1;
+      // A beam must not run across a note that isn't itself beamed, so a quarter
+      // (or longer) inside the beat splits it into separate beamed groups
+      // rather than being straddled by one beam.
+      const runs: Col[][] = [];
+      let open: Col[] = [];
+      cols.forEach((c) => {
+        if (c.d >= 8) open.push(c);
+        else if (open.length) {
+          runs.push(open);
+          open = [];
         }
-        if (bar.sub === 3) trip.push({ x: r1((x0 + x1) / 2), y: up ? UPEND - 5 : DNEND + 20 });
-      } else if (bm.length === 1) {
-        // A lone >=8th gets a flag instead of a beam. `dir` is applied to the y
-        // deltas only — multiplying it into x as well mirrors the hook across
-        // the stem and it points the wrong way.
-        const c = bm[0];
-        const fx = c.sx + 0.9;
-        const hook = (y0: number): string =>
-          'M' +
-          fx +
-          ' ' +
-          y0 +
-          'c8.4 ' +
-          4.2 * dir +
-          ' 10.5 ' +
-          13.2 * dir +
-          ' 1.8 ' +
-          20.4 * dir +
-          'c4.8 ' +
-          -8.4 * dir +
-          ' 2.4 ' +
-          -13.2 * dir +
-          ' -1.8 ' +
-          -16.2 * dir +
-          'Z';
-        flags.push(hook(tip));
-        if (c.d >= 16) flags.push(hook(tip + 9.6 * dir));
+      });
+      if (open.length) runs.push(open);
+
+      for (const bm of runs) {
+        if (bm.length > 1) {
+          const x0 = bm[0].sx;
+          const x1 = bm[bm.length - 1].sx;
+          beams.push({
+            x: r1(Math.min(x0, x1) - 0.9),
+            y: up ? UPEND : DNEND - BEAMH,
+            w: r1(Math.abs(x1 - x0) + 1.8),
+            c: bm.some((c) => c.hot) ? acc : IV,
+          });
+          // Secondary (16th) beam: a run of >=2 sixteenths that are actually
+          // adjacent in time gets a full beam; a sixteenth with no neighbour a
+          // sixteenth away gets a partial stub instead. Adjacency has to be
+          // measured in slots, not in list position — two sixteenths either side
+          // of a gap are not a run, and joining them draws a beam across a rest.
+          const y2 = up ? UPEND + BEAMSTEP : DNEND - BEAMH - BEAMSTEP;
+          const unit = slotsFor(bar, 16);
+          const adjacent = (a: Col, c: Col): boolean => c.s - a.s === unit;
+          let i = 0;
+          while (i < bm.length) {
+            if (bm[i].d < 16) {
+              i++;
+              continue;
+            }
+            let j = i;
+            while (j + 1 < bm.length && bm[j + 1].d >= 16 && adjacent(bm[j], bm[j + 1])) j++;
+            if (j > i) {
+              const a0 = bm[i].sx;
+              const a1 = bm[j].sx;
+              beams.push({
+                x: r1(Math.min(a0, a1) - 0.9),
+                y: y2,
+                w: r1(Math.abs(a1 - a0) + 1.8),
+                c: IV,
+              });
+            } else {
+              // Point the stub at whichever neighbour is nearer, so it reads as
+              // belonging to that side of the beat.
+              const c = bm[i];
+              const prev = i > 0 ? bm[i - 1] : null;
+              const next = i + 1 < bm.length ? bm[i + 1] : null;
+              const dPrev = prev ? c.sx - prev.sx : Infinity;
+              const dNext = next ? next.sx - c.sx : Infinity;
+              const left = dPrev <= dNext;
+              const w = Math.min(STUB, (left ? dPrev : dNext) * 0.5);
+              beams.push({
+                x: r1(left ? c.sx - 0.9 - w : c.sx - 0.9),
+                y: y2,
+                w: r1(w + 1.8),
+                c: IV,
+              });
+            }
+            i = j + 1;
+          }
+          if (bar.sub === 3)
+            trip.push({ x: r1((x0 + x1) / 2), y: up ? UPEND - 5 : DNEND + 20 });
+        } else if (bm.length === 1) {
+          // A lone >=8th gets a flag instead of a beam. `dir` is applied to the y
+          // deltas only — multiplying it into x as well mirrors the hook across
+          // the stem and it points the wrong way.
+          const c = bm[0];
+          const fx = c.sx + 0.9;
+          const hook = (y0: number): string =>
+            'M' +
+            fx +
+            ' ' +
+            y0 +
+            'c8.4 ' +
+            4.2 * dir +
+            ' 10.5 ' +
+            13.2 * dir +
+            ' 1.8 ' +
+            20.4 * dir +
+            'c4.8 ' +
+            -8.4 * dir +
+            ' 2.4 ' +
+            -13.2 * dir +
+            ' -1.8 ' +
+            -16.2 * dir +
+            'Z';
+          flags.push(hook(tip));
+          if (c.d >= 16) flags.push(hook(tip + 9.6 * dir));
+        }
       }
     }
   };
@@ -301,8 +349,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     false,
   );
 
-  const hl =
-    hot >= 0 ? [{ x: r1(xOf(bar, hot) - sw / 2), w: r1(sw), fill: softAcc }] : [];
+  const hl = hot >= 0 ? [{ x: r1(xOf(bar, hot) - sw / 2), w: r1(sw), fill: softAcc }] : [];
 
   const L = ctx.loop;
   const loop: { d: string }[] = [];
@@ -313,15 +360,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       const xa = inA ? r1(xOf(bar, L.a.s)) : BL + 4;
       const xb = inB && L.b ? r1(xOf(bar, L.b.s)) : BR - 4;
       loop.push({
-        d:
-          'M' +
-          xa +
-          ' 6v6M' +
-          xb +
-          ' 6v6M' +
-          Math.min(xa, xb) +
-          ' 6H' +
-          Math.max(xa, xb),
+        d: 'M' + xa + ' 6v6M' + xb + ' 6v6M' + Math.min(xa, xb) + ' 6H' + Math.max(xa, xb),
       });
     }
   }
@@ -334,8 +373,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       beats.push({
         n: String(i),
         x: r1(NOTE0 + (i - 1) * bw),
-        fill:
-          hot >= 0 && Math.floor(hot / bar.sub) === i - 1 ? acc : 'rgba(236,231,221,.3)',
+        fill: hot >= 0 && Math.floor(hot / bar.sub) === i - 1 ? acc : 'rgba(236,231,221,.3)',
       });
     }
   }
