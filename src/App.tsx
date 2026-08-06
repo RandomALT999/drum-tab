@@ -21,7 +21,7 @@ import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
 import { NOTE0, PVBH, SIGS, SUBS, V, VBH, VBW, VI, yOf } from './notation/constants';
 import { slotW, xOf } from './notation/layout';
-import { ACCENT, ROTATE_TO_PLAY } from './config';
+import { ACCENT } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
 import { PlayMode } from './screens/PlayMode';
@@ -58,6 +58,8 @@ export interface AppState {
   canUndo: boolean;
   canRedo: boolean;
   swUpdate: boolean;
+  /** landscape on a short viewport — trim the chrome, widen the staff */
+  compact: boolean;
 }
 
 interface Gesture {
@@ -118,17 +120,19 @@ export class App extends Component<Record<string, never>, AppState> {
       this.redo();
     }
   };
+  /** Landscape on a short viewport: shrink the chrome so the staff gets the room. */
   private onOri = (): void => {
-    if (
-      ROTATE_TO_PLAY &&
-      this.mq?.matches &&
-      window.innerWidth < 1000 &&
-      this.state.view === 'edit'
-    )
-      this.setState({ view: 'play' });
+    const compact = !!this.mq?.matches;
+    if (compact !== this.state.compact) this.setState({ compact }, () => this.measure());
   };
   private onVis = (): void => {
     if (document.visibilityState === 'visible') this.kit.resumeIfNeeded();
+  };
+  /** iOS needs a real gesture before any sound will come out. */
+  private onFirstGesture = (): void => {
+    void this.kit.unlock();
+    window.removeEventListener('pointerdown', this.onFirstGesture);
+    window.removeEventListener('touchend', this.onFirstGesture);
   };
 
   constructor(props: Record<string, never>) {
@@ -161,6 +165,7 @@ export class App extends Component<Record<string, never>, AppState> {
       canUndo: false,
       canRedo: false,
       swUpdate: false,
+      compact: false,
     };
   }
 
@@ -181,8 +186,11 @@ export class App extends Component<Record<string, never>, AppState> {
         () => this.forceUpdate(),
         () => {},
       );
-    this.mq = window.matchMedia('(orientation:landscape)');
+    this.mq = window.matchMedia('(max-height: 540px) and (orientation: landscape)');
     this.mq.addEventListener?.('change', this.onOri);
+    if (this.mq.matches) this.setState({ compact: true });
+    window.addEventListener('pointerdown', this.onFirstGesture, { passive: true });
+    window.addEventListener('touchend', this.onFirstGesture, { passive: true });
     onUpdateReady(() => this.setState({ swUpdate: true }));
   }
 
@@ -190,6 +198,8 @@ export class App extends Component<Record<string, never>, AppState> {
     this.stop();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('keydown', this.onKey);
+    window.removeEventListener('pointerdown', this.onFirstGesture);
+    window.removeEventListener('touchend', this.onFirstGesture);
     document.removeEventListener('visibilitychange', this.onVis);
     this.ro?.disconnect();
     this.mq?.removeEventListener?.('change', this.onOri);
@@ -211,13 +221,30 @@ export class App extends Component<Record<string, never>, AppState> {
   /** The bar SVG is height-capped from the measured pane so a whole bar —
       kick line, beat numbers and all — fits without scrolling. */
   private measure(): void {
+    // matchMedia's change event is the primary signal for `compact`; re-deriving
+    // it here too means a missed or coalesced event can't leave the layout stale.
+    const compact = !!this.mq?.matches;
+    if (compact !== this.state.compact) this.setState({ compact });
     const el = this.pane;
     if (!el) return;
     const h = el.clientHeight;
     if (h && Math.abs(h - this.state.paneH) > 2) this.setState({ paneH: h });
   }
+  /**
+   * Height cap for a bar's SVG, measured from the pane rather than fixed, so a
+   * whole bar — kick line and beat numbers included — fits without scrolling.
+   * 148 is the legibility floor, but only when the pane can afford it: on a
+   * landscape phone the pane is shorter than that, and a hard floor would push
+   * the low voices out of view instead of scaling the bar down.
+   */
   barCap(): string {
-    return (this.state.paneH ? Math.max(148, this.state.paneH - 60) : 196) + 'px';
+    const h = this.state.paneH;
+    if (!h) return '196px';
+    // 42 leaves room for the bar's own header row (badge / meter / subdivision),
+    // the gap below it and the pane's padding, so the whole *block* fits the
+    // pane — not just the staff.
+    const roomy = h - 60;
+    return (roomy >= 148 ? roomy : Math.max(72, h - 42)) + 'px';
   }
 
   /* ---------- project access ---------- */
@@ -332,16 +359,23 @@ export class App extends Component<Record<string, never>, AppState> {
     this.TL = T.steps;
     this.total = T.total;
     this.spq = T.spq;
+    // Four ticks lead in before the first pass only. Repeats are seamless —
+    // a gap between passes breaks time, which is the opposite of useful when
+    // you are playing along to the loop.
     this.gap = 4 * T.spq;
-    this.period = this.total + this.gap;
+    this.period = this.total;
   }
 
   togglePlay = (): void => {
     if (this.state.playing) this.stop();
-    else this.start();
+    else void this.start();
   };
 
-  start(): void {
+  async start(): Promise<void> {
+    // On iOS the context can still be suspended here, and a suspended context
+    // reports currentTime 0 — every event would be scheduled in the past and
+    // dropped. Resume before reading the clock.
+    await this.kit.unlock();
     const ac = this.kit.ac();
     this.rebuild();
     if (!this.TL.length) return;
@@ -366,7 +400,7 @@ export class App extends Component<Record<string, never>, AppState> {
 
   restart(): void {
     this.stop();
-    setTimeout(() => this.start(), 40);
+    setTimeout(() => void this.start(), 40);
   }
 
   /**
@@ -385,9 +419,6 @@ export class App extends Component<Record<string, never>, AppState> {
       if (this.state.met && st.beatHead) this.click(when, st.beatIdx === 0);
       this.idx++;
       if (this.idx >= this.TL.length) {
-        // Four ticks between every pass.
-        const base = this.t0 + this.pass * this.period + this.total;
-        for (let i = 0; i < 4; i++) this.countTick(base + i * this.spq, i === 0);
         this.pass++;
         this.idx = 0;
       }
@@ -405,22 +436,17 @@ export class App extends Component<Record<string, never>, AppState> {
         if (s.count !== c || s.cur) this.setState({ count: c, cur: null });
       } else {
         const m = t % this.period;
-        if (m >= this.total) {
-          const c = Math.min(4, Math.floor((m - this.total) / this.spq) + 1);
-          if (s.count !== c || s.cur) this.setState({ count: c, cur: null });
-        } else {
-          let i = 0;
-          for (let k = 0; k < this.TL.length; k++) {
-            if (this.TL[k].t <= m) i = k;
-            else break;
-          }
-          const st = this.TL[i];
-          const c = s.cur;
-          if (st && (!c || c.barId !== st.barId || c.s !== st.s || s.count))
-            this.setState({ cur: { barId: st.barId, s: st.s, partId: st.partId }, count: 0 }, () =>
-              this.autoscroll(st.barId),
-            );
+        let i = 0;
+        for (let k = 0; k < this.TL.length; k++) {
+          if (this.TL[k].t <= m) i = k;
+          else break;
         }
+        const st = this.TL[i];
+        const c = s.cur;
+        if (st && (!c || c.barId !== st.barId || c.s !== st.s || s.count))
+          this.setState({ cur: { barId: st.barId, s: st.s, partId: st.partId }, count: 0 }, () =>
+            this.autoscroll(st.barId),
+          );
       }
       this.raf = requestAnimationFrame(step);
     };
@@ -1043,6 +1069,9 @@ export class App extends Component<Record<string, never>, AppState> {
           flexDirection: 'column',
           alignItems: 'center',
           overflowX: 'hidden',
+          // in landscape the notch sits on one side, not the top
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)',
         }}
       >
         {st.view === 'lib' && <Library app={this} />}

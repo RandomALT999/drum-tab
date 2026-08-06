@@ -1,3 +1,5 @@
+import { SAFE_BOTTOM } from '../config';
+
 export interface SheetItem {
   /** glyph */
   g: string;
@@ -43,7 +45,7 @@ export function BottomSheet({ spec }: { spec: SheetSpec }) {
           background: '#17171c',
           borderRadius: '18px 18px 0 0',
           padding: '16px 16px 22px',
-          paddingBottom: 'calc(22px + env(safe-area-inset-bottom))',
+          paddingBottom: `calc(14px + ${SAFE_BOTTOM})`,
           animation: 'rise .16s ease-out',
         }}
       >

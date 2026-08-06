@@ -1,6 +1,6 @@
 import type { App } from '../App';
 import type { Bar } from '../model/types';
-import { ACCENT, softAccent } from '../config';
+import { ACCENT, SAFE_BOTTOM, softAccent } from '../config';
 import { buildBar } from '../notation/layout';
 import { Staff } from '../notation/Staff';
 
@@ -26,11 +26,10 @@ export function PlayMode({ app }: { app: App }) {
 
   return (
     <div
+      className="screen"
       onClick={app.togglePlay}
       style={{
         width: '100%',
-        height: '100dvh',
-        maxHeight: '100dvh',
         background: '#000',
         display: 'flex',
         flexDirection: 'column',
@@ -43,7 +42,6 @@ export function PlayMode({ app }: { app: App }) {
           alignItems: 'center',
           gap: 12,
           padding: '8px 14px 6px',
-          paddingTop: 'calc(8px + env(safe-area-inset-top))',
           flex: 'none',
         }}
       >
@@ -171,7 +169,7 @@ export function PlayMode({ app }: { app: App }) {
           justifyContent: 'center',
           gap: 22,
           padding: '6px 0 10px',
-          paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+          paddingBottom: SAFE_BOTTOM,
           font: '400 9px IBM Plex Mono,monospace',
           letterSpacing: '.14em',
           color: 'rgba(236,231,221,.3)',

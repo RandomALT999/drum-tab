@@ -16,16 +16,18 @@ export function Editor({ app }: { app: App }) {
   const soft = softAccent(ACCENT);
   const vb = app.viewBox();
   const cap = app.barCap();
+  const compact = st.compact;
 
   return (
     <div
+      className="screen"
       style={{
         width: '100%',
-        maxWidth: 640,
+        // Landscape is still the editor — it just gets more room. Widening the
+        // column and trimming the chrome is what "rescale to fit" means here.
+        maxWidth: compact ? 1180 : 640,
         display: 'flex',
         flexDirection: 'column',
-        height: '100dvh',
-        maxHeight: '100dvh',
         minHeight: 0,
         overflow: 'hidden',
       }}
@@ -36,9 +38,7 @@ export function Editor({ app }: { app: App }) {
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          padding: '12px 14px 11px',
-          // installed on iOS the app draws under the status bar
-          paddingTop: 'calc(12px + env(safe-area-inset-top))',
+          padding: compact ? '6px 14px 6px' : '12px 14px 11px',
           borderBottom: '1px solid rgba(236,231,221,.12)',
           flex: 'none',
         }}
@@ -50,8 +50,8 @@ export function Editor({ app }: { app: App }) {
           }}
           aria-label="Library"
           style={{
-            width: 40,
-            height: 40,
+            width: compact ? 32 : 40,
+            height: compact ? 32 : 40,
             border: '1px solid rgba(236,231,221,.16)',
             borderRadius: 10,
             display: 'grid',
@@ -76,12 +76,20 @@ export function Editor({ app }: { app: App }) {
               background: 'none',
               border: 0,
               outline: 'none',
-              font: '500 18px/1.2 Helvetica Neue,Helvetica,sans-serif',
+              font: `500 ${compact ? 15 : 18}px/1.2 Helvetica Neue,Helvetica,sans-serif`,
               letterSpacing: '-.015em',
               padding: 0,
             }}
           />
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+          {/* the save/meta line is the first thing to go when height is scarce */}
+          <div
+            style={{
+              display: compact ? 'none' : 'flex',
+              alignItems: 'center',
+              gap: 6,
+              marginTop: 3,
+            }}
+          >
             <span
               style={{
                 width: 5,
@@ -112,7 +120,7 @@ export function Editor({ app }: { app: App }) {
             })
           }
           style={{
-            height: 40,
+            height: compact ? 32 : 40,
             padding: '0 13px',
             background: '#ece7dd',
             color: '#0d0d10',
@@ -137,7 +145,7 @@ export function Editor({ app }: { app: App }) {
             display: 'flex',
             alignItems: 'center',
             gap: 12,
-            padding: '7px 16px 8px',
+            padding: compact ? '3px 16px 4px' : '7px 16px 8px',
             borderBottom: '1px solid rgba(236,231,221,.12)',
             flex: 'none',
           }}
@@ -184,7 +192,7 @@ export function Editor({ app }: { app: App }) {
           flex: '1 1 0',
           minHeight: 0,
           background: '#111116',
-          padding: '12px 12px 4px',
+          padding: compact ? '5px 10px 2px' : '12px 12px 4px',
           overflowY: 'auto',
           overflowX: 'hidden',
         }}
@@ -205,7 +213,7 @@ export function Editor({ app }: { app: App }) {
           const subInfo = SUBS.find((s) => s.s === bar.sub) || SUBS[0];
           const selected = st.bar === i;
           return (
-            <div key={bar.id} style={{ marginBottom: 14 }}>
+            <div key={bar.id} style={{ marginBottom: compact ? 6 : 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 1 }}>
                 <button
                   onClick={() => app.setState({ bar: i })}

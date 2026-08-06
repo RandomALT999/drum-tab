@@ -1,5 +1,5 @@
 import type { App } from '../App';
-import { ACCENT } from '../config';
+import { ACCENT, SAFE_BOTTOM } from '../config';
 
 const meta = (p: import('../model/types').Project): string => {
   const n = p.parts.reduce((a, q) => a + q.bars.length, 0);
@@ -16,8 +16,7 @@ export function Library({ app }: { app: App }) {
         width: '100%',
         maxWidth: 560,
         padding: '22px 18px 40px',
-        paddingTop: 'calc(22px + env(safe-area-inset-top))',
-        paddingBottom: 'calc(40px + env(safe-area-inset-bottom))',
+        paddingBottom: `calc(24px + ${SAFE_BOTTOM})`,
         display: 'flex',
         flexDirection: 'column',
         gap: 16,

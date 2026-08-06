@@ -17,7 +17,11 @@
     <!-- iOS "Add to Home Screen" -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Drum Tab" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- `black`, not `black-translucent`: black-translucent draws the page from
+         y=0 but iOS still shrinks the viewport by the status-bar height, leaving
+         a strip at the bottom that no layout can reach. iOS reads this only at
+         install time — changing it needs the Home Screen icon re-added. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon.svg" />
   </head>

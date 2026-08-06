@@ -32,6 +32,45 @@ export class Kit {
     return this.ctx;
   }
 
+  /**
+   * iOS will not start an AudioContext outside a user gesture, and a context
+   * created before the first gesture stays suspended with currentTime pinned at
+   * 0 — so anything scheduled against it is silently dropped. Call this from a
+   * real touch: it creates the context, resumes it, and pushes one silent
+   * buffer through, which is what actually flips iOS out of the muted state.
+   *
+   * `audioSession.type = 'playback'` additionally stops the hardware ringer
+   * switch from muting us, which is the other common cause of a silent iPhone.
+   */
+  async unlock(): Promise<void> {
+    const nav = navigator as Navigator & { audioSession?: { type: string } };
+    try {
+      if (nav.audioSession) nav.audioSession.type = 'playback';
+    } catch {
+      /* not supported */
+    }
+    const ac = this.ac();
+    if (ac.state !== 'running') {
+      try {
+        await ac.resume();
+      } catch {
+        /* blocked — the next gesture will try again */
+      }
+    }
+    try {
+      const s = ac.createBufferSource();
+      s.buffer = ac.createBuffer(1, 1, ac.sampleRate);
+      s.connect(ac.destination);
+      s.start(0);
+    } catch {
+      /* harmless */
+    }
+  }
+
+  get running(): boolean {
+    return this.ctx?.state === 'running';
+  }
+
   /** Audio-clock read with no side effects — safe to poll from rAF. */
   get time(): number {
     return this.ctx ? this.ctx.currentTime : 0;

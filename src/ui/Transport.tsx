@@ -2,23 +2,27 @@ import type { App } from '../App';
 import { ACCENT, softAccent } from '../config';
 import { SPEEDS } from '../notation/constants';
 
-const chip = (bg: string, color: string, pad = 12): React.CSSProperties => ({
-  height: 46,
-  padding: `0 ${pad}px`,
-  borderRadius: 10,
-  display: 'grid',
-  placeItems: 'center',
-  font: '600 9.5px IBM Plex Mono,monospace',
-  letterSpacing: '.1em',
-  flex: 'none',
-  background: bg,
-  color,
-});
+const chipAt =
+  (h: number) =>
+  (bg: string, color: string, pad = 12): React.CSSProperties => ({
+    height: h,
+    padding: `0 ${pad}px`,
+    borderRadius: 10,
+    display: 'grid',
+    placeItems: 'center',
+    font: '600 9.5px IBM Plex Mono,monospace',
+    letterSpacing: '.1em',
+    flex: 'none',
+    background: bg,
+    color,
+  });
 
 export function Transport({ app }: { app: App }) {
   const st = app.state;
   const p = app.proj();
   const soft = softAccent(ACCENT);
+  const H = st.compact ? 38 : 46;
+  const chip = chipAt(H);
   const loopOn = !!(st.loop && st.loop.a && st.loop.b);
   const loopActive = st.loopArm || loopOn;
   const speedLabel = (st.speed === 1 ? '1' : String(st.speed).replace('0.', '.')) + '×';
@@ -37,7 +41,7 @@ export function Transport({ app }: { app: App }) {
         display: 'flex',
         alignItems: 'center',
         gap: 7,
-        padding: '11px 14px',
+        padding: st.compact ? '6px 14px' : '11px 14px',
         borderBottom: '1px solid rgba(236,231,221,.12)',
         overflowX: 'auto',
         overflowY: 'hidden',
@@ -48,8 +52,8 @@ export function Transport({ app }: { app: App }) {
         onClick={app.togglePlay}
         aria-label={st.playing ? 'Pause' : 'Play'}
         style={{
-          width: 46,
-          height: 46,
+          width: H,
+          height: H,
           borderRadius: '50%',
           background: ACCENT,
           color: '#0d0d10',
@@ -72,7 +76,7 @@ export function Transport({ app }: { app: App }) {
           alignItems: 'center',
           background: '#17171c',
           borderRadius: 10,
-          height: 46,
+          height: H,
           flex: 'none',
         }}
       >
@@ -81,7 +85,7 @@ export function Transport({ app }: { app: App }) {
           aria-label="Decrease tempo"
           style={{
             width: 34,
-            height: 46,
+            height: H,
             display: 'grid',
             placeItems: 'center',
             font: '400 18px IBM Plex Mono,monospace',
@@ -107,7 +111,7 @@ export function Transport({ app }: { app: App }) {
           aria-label="Increase tempo"
           style={{
             width: 34,
-            height: 46,
+            height: H,
             display: 'grid',
             placeItems: 'center',
             font: '400 18px IBM Plex Mono,monospace',

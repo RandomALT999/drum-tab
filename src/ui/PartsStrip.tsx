@@ -3,6 +3,7 @@ import { blankBar, uid } from '../model/factory';
 
 export function PartsStrip({ app }: { app: App }) {
   const st = app.state;
+  const compact = st.compact;
   const p = app.proj();
   const part = app.curPart();
 
@@ -12,7 +13,7 @@ export function PartsStrip({ app }: { app: App }) {
         display: 'flex',
         alignItems: 'center',
         gap: 7,
-        padding: '10px 14px',
+        padding: compact ? '5px 14px' : '10px 14px',
         borderBottom: '1px solid rgba(236,231,221,.12)',
         overflowX: 'auto',
         overflowY: 'hidden',
@@ -25,7 +26,7 @@ export function PartsStrip({ app }: { app: App }) {
           onClick={() => app.setState({ part: i, bar: 0, sel: null })}
           onDoubleClick={() => app.setState({ part: i, sheet: { k: 'part' } })}
           style={{
-            padding: '9px 13px',
+            padding: compact ? '6px 12px' : '9px 13px',
             borderRadius: 20,
             font: '500 11.5px Helvetica Neue,Helvetica,sans-serif',
             whiteSpace: 'nowrap',
@@ -50,7 +51,7 @@ export function PartsStrip({ app }: { app: App }) {
         }}
         aria-label="Add part"
         style={{
-          padding: '9px 12px',
+          padding: compact ? '6px 11px' : '9px 12px',
           border: '1px dashed rgba(236,231,221,.25)',
           borderRadius: 20,
           font: '400 11.5px IBM Plex Mono,monospace',

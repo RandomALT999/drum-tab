@@ -34,14 +34,36 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* Any area the viewport does not cover is painted with the canvas colour,
+     which propagates from <html>, not <body>. */
   background: #0d0d10;
   color: #ece7dd;
   font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+  /* Holding a note must not raise the text-selection / callout UI on a phone. */
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+/* …but real text fields still need to be selectable. */
+input,
+textarea {
+  -webkit-user-select: text;
+  user-select: text;
+  -webkit-touch-callout: default;
 }
 * {
   box-sizing: border-box;
+}
+
+/* Full-height screens. 100vh is the fallback; 100dvh keeps the layout correct
+   when iOS Safari's bottom toolbar auto-hides. */
+.screen {
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100vh;
+  max-height: 100dvh;
 }
 a {
   color: oklch(0.8 0.14 72);

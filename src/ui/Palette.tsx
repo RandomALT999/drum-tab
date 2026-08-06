@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 import type { App } from '../App';
-import { ACCENT } from '../config';
+import { ACCENT, SAFE_BOTTOM } from '../config';
 import { CH, VI } from '../notation/constants';
 
 const glyph = (w: number, h: number, vb: string, x: number, y: number, fs: number, ch: string): ReactNode => (
@@ -26,6 +26,7 @@ const smallChip = (bg: string, color: string): React.CSSProperties => ({
 
 export function Palette({ app }: { app: App }) {
   const st = app.state;
+  const compact = st.compact;
   const sn = app.selNote();
 
   // The eight buttons are dual-purpose: with a note selected they edit it and
@@ -58,7 +59,7 @@ export function Palette({ app }: { app: App }) {
       style={{
         flex: 1,
         minWidth: 0,
-        height: 46,
+        height: compact ? 38 : 46,
         borderRadius: 8,
         display: 'flex',
         flexDirection: 'column',
@@ -81,8 +82,8 @@ export function Palette({ app }: { app: App }) {
         borderTop: '1px solid rgba(236,231,221,.12)',
         background: '#0d0d10',
         flex: 'none',
-        padding: '7px 12px 10px',
-        paddingBottom: 'calc(10px + env(safe-area-inset-bottom))',
+        padding: compact ? '4px 12px 4px' : '7px 12px 10px',
+        paddingBottom: SAFE_BOTTOM,
       }}
     >
       <div
