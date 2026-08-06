@@ -36,12 +36,12 @@ export const seedBar = (): Bar => ({
   ],
 });
 
-export const newProj = (): Project => ({
+export const newProj = (first: Bar = seedBar()): Project => ({
   id: uid(),
   title: 'Untitled groove',
   bpm: 92,
   updated: Date.now(),
-  parts: [{ id: uid(), name: 'Groove', bars: [seedBar()] }],
+  parts: [{ id: uid(), name: 'Groove', bars: [first] }],
 });
 
 export const clone = <T>(x: T): T => JSON.parse(JSON.stringify(x)) as T;

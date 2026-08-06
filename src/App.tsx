@@ -14,6 +14,8 @@ import type {
   VoiceId,
 } from './model/types';
 import { RES, blankBar, clone, newProj, uid } from './model/factory';
+import { FEELS, feelBar } from './model/feels';
+import type { Feel } from './model/feels';
 import { load, save } from './model/storage';
 import { History } from './model/history';
 import { Kit } from './audio/kit';
@@ -286,14 +288,11 @@ export class App extends Component<Record<string, never>, AppState> {
     fn(p);
     p.updated = Date.now();
     this.history.push(before, coalesceKey);
-    this.setState(
-      { lib, canUndo: this.history.canUndo, canRedo: this.history.canRedo },
-      () => {
-        save(lib, this.state.curId);
-        // Rebuild after commit — reading this.state here would see the old lib.
-        if (this.state.playing) this.rebuild();
-      },
-    );
+    this.setState({ lib, canUndo: this.history.canUndo, canRedo: this.history.canRedo }, () => {
+      save(lib, this.state.curId);
+      // Rebuild after commit — reading this.state here would see the old lib.
+      if (this.state.playing) this.rebuild();
+    });
     if (label) this.flash(label);
   }
 
@@ -448,8 +447,9 @@ export class App extends Component<Record<string, never>, AppState> {
         const st = this.TL[i];
         const c = s.cur;
         if (st && (!c || c.barId !== st.barId || c.s !== st.s || s.count))
-          this.setState({ cur: { barId: st.barId, s: st.s, partId: st.partId }, count: 0 }, () =>
-            this.autoscroll(st.barId),
+          this.setState(
+            { cur: { barId: st.barId, s: st.s, partId: st.partId }, count: 0 },
+            () => this.autoscroll(st.barId),
           );
       }
       this.raf = requestAnimationFrame(step);
@@ -588,7 +588,11 @@ export class App extends Component<Record<string, never>, AppState> {
     if (!st.playing) this.audition(v, st.art);
   }
 
-  mutNote(barId: string, noteId: string, fn: (n: import('./model/types').Note, b: Bar) => void | null): void {
+  mutNote(
+    barId: string,
+    noteId: string,
+    fn: (n: import('./model/types').Note, b: Bar) => void | null,
+  ): void {
     this.edit((p) => {
       const bar = this.findBar(p, barId);
       if (!bar) return;
@@ -615,26 +619,30 @@ export class App extends Component<Record<string, never>, AppState> {
 
   toggleRest = (): void => {
     const n = this.selNote();
-    if (n && this.state.sel) this.mutNote(this.state.sel.barId, n.id, (x) => void (x.rest = !x.rest));
+    if (n && this.state.sel)
+      this.mutNote(this.state.sel.barId, n.id, (x) => void (x.rest = !x.rest));
     else this.flash('SELECT A NOTE');
   };
 
   /** A meter change applies to the tapped bar and every bar after it. */
   setSig(barId: string, n: number, dv: number): void {
-    this.edit((p) => {
-      for (const pt of p.parts) {
-        const i = pt.bars.findIndex((x) => x.id === barId);
-        if (i < 0) continue;
-        for (let k = i; k < pt.bars.length; k++) {
-          const b = pt.bars[k];
-          b.n = n;
-          b.dv = dv;
-          const res = RES(b);
-          b.notes = b.notes.filter((x) => x.s < res);
+    this.edit(
+      (p) => {
+        for (const pt of p.parts) {
+          const i = pt.bars.findIndex((x) => x.id === barId);
+          if (i < 0) continue;
+          for (let k = i; k < pt.bars.length; k++) {
+            const b = pt.bars[k];
+            b.n = n;
+            b.dv = dv;
+            const res = RES(b);
+            b.notes = b.notes.filter((x) => x.s < res);
+          }
+          return;
         }
-        return;
-      }
-    }, n + '/' + dv);
+      },
+      n + '/' + dv,
+    );
   }
 
   /** Cycles 16THS → 8THS → TRIPLETS, re-timing existing notes proportionally. */
@@ -663,7 +671,15 @@ export class App extends Component<Record<string, never>, AppState> {
     }
     const q = this.pt(e);
     const note = this.hitNote(bar, q.ux, q.uy);
-    this.g = { barId: bar.id, x: e.clientX, y: e.clientY, ux: q.ux, uy: q.uy, note, moved: false };
+    this.g = {
+      barId: bar.id,
+      x: e.clientX,
+      y: e.clientY,
+      ux: q.ux,
+      uy: q.uy,
+      note,
+      moved: false,
+    };
     if (this.state.loopArm) {
       const s = this.slotAt(bar, q.ux, 16);
       const L = this.state.loop;
@@ -683,13 +699,15 @@ export class App extends Component<Record<string, never>, AppState> {
   onMove = (bar: Bar, e: RPointerEvent<SVGSVGElement>): void => {
     const g = this.g;
     if (!g || g.done) return;
-    if (!g.moved && Math.hypot(e.clientX - (g.x ?? 0), e.clientY - (g.y ?? 0)) > 7) g.moved = true;
+    if (!g.moved && Math.hypot(e.clientX - (g.x ?? 0), e.clientY - (g.y ?? 0)) > 7)
+      g.moved = true;
     if (!g.moved || !g.note) return;
     const q = this.pt(e);
     const s = this.slotAt(bar, q.ux, g.note.d);
     const v = this.nearVoice(q.uy).id;
     const d = this.state.drag;
-    if (!d || d.s !== s || d.v !== v) this.setState({ drag: { barId: bar.id, noteId: g.note.id, v, s } });
+    if (!d || d.s !== s || d.v !== v)
+      this.setState({ drag: { barId: bar.id, noteId: g.note.id, v, s } });
   };
 
   onUp = (bar: Bar, _e: RPointerEvent<SVGSVGElement>): void => {
@@ -731,7 +749,11 @@ export class App extends Component<Record<string, never>, AppState> {
       this.flash('DELETED');
     } else {
       this.lastTap = { id: g.note.id, t: now };
-      this.setState({ sel: { barId: bar.id, noteId: g.note.id }, dur: g.note.d, art: g.note.a });
+      this.setState({
+        sel: { barId: bar.id, noteId: g.note.id },
+        dur: g.note.d,
+        art: g.note.a,
+      });
       this.audition(g.note.v, g.note.a);
     }
   };
@@ -763,8 +785,19 @@ export class App extends Component<Record<string, never>, AppState> {
     );
   };
 
-  newProject = (): void => {
-    const np = newProj();
+  /** A new part starts on its cymbal line only — nothing else is written for you. */
+  addPart = (feel: Feel): void => {
+    const p = this.proj();
+    const first = p.parts[0]?.bars[0];
+    const bar = feelBar(feel, first?.n ?? 4, first?.dv ?? 4);
+    this.edit((pp) => {
+      pp.parts.push({ id: uid(), name: 'Part ' + (pp.parts.length + 1), bars: [bar] });
+    });
+    this.setState({ part: p.parts.length, bar: 0, sel: null });
+  };
+
+  createProject = (feel: Feel): void => {
+    const np = newProj(feelBar(feel));
     const lib = [np, ...this.state.lib];
     this.history.clear(np.id);
     this.setState(
@@ -985,7 +1018,8 @@ export class App extends Component<Record<string, never>, AppState> {
             ...mono,
             act: () => {
               this.edit((pp) => {
-                if (st.part > 0) pp.parts.splice(st.part - 1, 0, pp.parts.splice(st.part, 1)[0]);
+                if (st.part > 0)
+                  pp.parts.splice(st.part - 1, 0, pp.parts.splice(st.part, 1)[0]);
               });
               this.setState({ part: Math.max(0, st.part - 1) });
               close();
@@ -1020,6 +1054,25 @@ export class App extends Component<Record<string, never>, AppState> {
             },
           },
         ],
+      };
+    }
+
+    if (S.k === 'feel') {
+      return {
+        title: S.target === 'part' ? 'NEW PART · FEEL' : 'NEW SHEET · FEEL',
+        close,
+        items: FEELS.map((f) => ({
+          g: f.glyph,
+          t: f.label,
+          fs: '30px',
+          dy: '6px',
+          min: '150px',
+          act: () => {
+            if (S.target === 'part') this.addPart(f);
+            else this.createProject(f);
+            close();
+          },
+        })),
       };
     }
 

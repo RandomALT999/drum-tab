@@ -105,4 +105,6 @@ export type SheetState =
   | { k: 'sig'; barId: string }
   | { k: 'bar'; idx: number; barId: string }
   | { k: 'part'; name?: string }
-  | { k: 'addbar' };
+  | { k: 'addbar' }
+  /** pick the cymbal feel a new part (or sheet) starts on */
+  | { k: 'feel'; target: 'part' | 'project' };

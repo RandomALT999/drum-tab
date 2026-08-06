@@ -1,11 +1,9 @@
 import type { App } from '../App';
-import { blankBar, uid } from '../model/factory';
 
 export function PartsStrip({ app }: { app: App }) {
   const st = app.state;
   const compact = st.compact;
   const p = app.proj();
-  const part = app.curPart();
 
   return (
     <div
@@ -39,16 +37,7 @@ export function PartsStrip({ app }: { app: App }) {
         </button>
       ))}
       <button
-        onClick={() => {
-          app.edit((pp) => {
-            pp.parts.push({
-              id: uid(),
-              name: 'Part ' + (pp.parts.length + 1),
-              bars: [blankBar(part.bars[0])],
-            });
-          });
-          app.setState({ part: p.parts.length, bar: 0, sel: null });
-        }}
+        onClick={() => app.setState({ sheet: { k: 'feel', target: 'part' } })}
         aria-label="Add part"
         style={{
           padding: compact ? '6px 11px' : '9px 12px',

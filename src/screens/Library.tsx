@@ -4,7 +4,12 @@ import { ACCENT, SAFE_BOTTOM } from '../config';
 const meta = (p: import('../model/types').Project): string => {
   const n = p.parts.reduce((a, q) => a + q.bars.length, 0);
   return (
-    n + (n === 1 ? ' BAR' : ' BARS') + ' · ' + p.bpm + ' BPM · ' + new Date(p.updated).toLocaleDateString()
+    n +
+    (n === 1 ? ' BAR' : ' BARS') +
+    ' · ' +
+    p.bpm +
+    ' BPM · ' +
+    new Date(p.updated).toLocaleDateString()
   );
 };
 
@@ -22,7 +27,14 @@ export function Library({ app }: { app: App }) {
         gap: 16,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 12 }}>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          justifyContent: 'space-between',
+          gap: 12,
+        }}
+      >
         <div>
           <div
             style={{
@@ -44,7 +56,7 @@ export function Library({ app }: { app: App }) {
           </div>
         </div>
         <button
-          onClick={app.newProject}
+          onClick={() => app.setState({ sheet: { k: 'feel', target: 'project' } })}
           style={{
             height: 44,
             padding: '0 16px',
