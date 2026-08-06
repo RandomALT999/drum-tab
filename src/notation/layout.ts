@@ -320,15 +320,24 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
                 c: IV,
               });
             } else {
-              // Point the stub at whichever neighbour is nearer, so it reads as
-              // belonging to that side of the beat.
+              // A fractional beam points at the beat it subdivides, not at
+              // whichever neighbour is nearer: back toward the start of the
+              // beat, forward only for a sixteenth sitting on the beat itself.
+              // One on an "e" or an "a" therefore points left even when the
+              // note it belongs with is missing.
               const c = bm[i];
               const prev = i > 0 ? bm[i - 1] : null;
               const next = i + 1 < bm.length ? bm[i + 1] : null;
-              const dPrev = prev ? c.sx - prev.sx : Infinity;
-              const dNext = next ? next.sx - c.sx : Infinity;
-              const left = dPrev <= dNext;
-              const w = Math.min(STUB, (left ? dPrev : dNext) * 0.5);
+              const onBeat = c.s % bar.sub === 0;
+              const left = !!prev || !onBeat;
+              const span = left
+                ? prev
+                  ? c.sx - prev.sx
+                  : slotW(bar)
+                : next
+                  ? next.sx - c.sx
+                  : slotW(bar);
+              const w = Math.min(STUB, Math.abs(span) * 0.5);
               beams.push({
                 x: r1(left ? c.sx - 0.9 - w : c.sx - 0.9),
                 y: y2,
