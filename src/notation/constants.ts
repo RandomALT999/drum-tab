@@ -15,9 +15,10 @@ export const V: Voice[] = [
   { id: 'kick', ab: 'BD', nm: 'Kick', st: 7, hd: 'n', up: 0 },
 ];
 
-export const VI: Record<VoiceId, Voice> = Object.fromEntries(
-  V.map((v) => [v.id, v]),
-) as Record<VoiceId, Voice>;
+export const VI: Record<VoiceId, Voice> = Object.fromEntries(V.map((v) => [v.id, v])) as Record<
+  VoiceId,
+  Voice
+>;
 
 /** Noto Music codepoints. */
 export const CH = {
@@ -101,17 +102,6 @@ export const SIGS: [number, number][] = [
   [6, 8],
   [7, 8],
   [9, 8],
-];
-
-/**
- * The bar's grid — the *feel*, not the note value. Straight bars are always at
- * sixteenth resolution so a sixteenth can always be placed; how coarsely a tap
- * snaps is decided by the selected note value instead (see `slotsFor`). An
- * eighth-resolution grid only ever stopped sixteenths going in, so it's gone.
- */
-export const SUBS = [
-  { s: 4, g: CH.d16, t: 'STRAIGHT' },
-  { s: 3, g: CH.d8, t: 'TRIPLETS' },
 ];
 
 export const SPEEDS = [1, 0.75, 0.5, 0.25];

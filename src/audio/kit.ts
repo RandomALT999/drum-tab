@@ -10,14 +10,15 @@ export class Kit {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
   private noiseBuf: AudioBuffer | null = null;
+  /** Everything scheduled but not yet finished, so a pause can cut it. */
+  private live: { node: AudioScheduledSourceNode; gain: GainNode }[] = [];
 
   /** Lazily creates (and resumes) the context. Must be reached from a gesture. */
   ac(): AudioContext {
     if (!this.ctx) {
       const C: typeof AudioContext =
         window.AudioContext ||
-        (window as unknown as { webkitAudioContext: typeof AudioContext })
-          .webkitAudioContext;
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new C();
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.85;
@@ -76,6 +77,36 @@ export class Kit {
     return this.ctx ? this.ctx.currentTime : 0;
   }
 
+  /**
+   * Silence anything already scheduled. Events are pushed onto the audio clock
+   * up to 200ms ahead, so without this a pause leaves the next few hits — and
+   * the rest of the count-in — still queued to sound.
+   */
+  panic(): void {
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    this.live.forEach(({ node, gain }) => {
+      try {
+        // Short fade rather than a hard cut, or stopping mid-cycle clicks.
+        gain.gain.cancelScheduledValues(now);
+        gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+        gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.008);
+        node.stop(now + 0.01);
+      } catch {
+        /* already finished, or stop() before start() — nothing to cut */
+      }
+    });
+    this.live = [];
+  }
+
+  private track(node: AudioScheduledSourceNode, gain: GainNode): void {
+    this.live.push({ node, gain });
+    node.onended = () => {
+      const i = this.live.findIndex((x) => x.node === node);
+      if (i >= 0) this.live.splice(i, 1);
+    };
+  }
+
   /** iOS suspends the context when the app is backgrounded. */
   resumeIfNeeded(): void {
     if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
@@ -113,6 +144,7 @@ export class Kit {
     g.gain.exponentialRampToValueAtTime(Math.max(g1, 0.0001), t + dur);
     node.connect(g);
     g.connect(this.master);
+    this.track(s, g);
     s.start(t);
     s.stop(t + dur + 0.02);
   }
@@ -136,6 +168,7 @@ export class Kit {
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
     o.connect(g);
     g.connect(this.master);
+    this.track(o, g);
     o.start(t);
     o.stop(t + dur + 0.02);
   }
@@ -173,7 +206,14 @@ export class Kit {
   tick(t: number, strong: boolean, vol: number): void {
     if (vol <= 0) return;
     this.ac();
-    this.tone(t, strong ? 2050 : 1500, strong ? 1950 : 1420, 0.042, (strong ? 1.15 : 0.75) * vol, 'square');
+    this.tone(
+      t,
+      strong ? 2050 : 1500,
+      strong ? 1950 : 1420,
+      0.042,
+      (strong ? 1.15 : 0.75) * vol,
+      'square',
+    );
     this.noise(t, 0.014, 3500, null, (strong ? 0.55 : 0.34) * vol, 0.001);
   }
 

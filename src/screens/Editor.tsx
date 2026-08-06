@@ -1,6 +1,5 @@
 import type { App } from '../App';
 import { ACCENT, SHOW_BEAT_NUMBERS, softAccent } from '../config';
-import { SUBS } from '../notation/constants';
 import { buildBar } from '../notation/layout';
 import { Staff } from '../notation/Staff';
 import { Transport } from '../ui/Transport';
@@ -210,7 +209,6 @@ export function Editor({ app }: { app: App }) {
             prev: i > 0 ? part.bars[i - 1] : null,
             gi: i,
           });
-          const subInfo = SUBS.find((s) => s.s === bar.sub) || SUBS[0];
           const selected = st.bar === i;
           return (
             <div key={bar.id} style={{ marginBottom: compact ? 6 : 14 }}>
@@ -245,44 +243,6 @@ export function Editor({ app }: { app: App }) {
                   }}
                 >
                   {bar.n}/{bar.dv}
-                </button>
-                <button
-                  onClick={() => app.cycleSub(bar.id)}
-                  style={{
-                    height: 24,
-                    padding: '0 10px',
-                    borderRadius: 6,
-                    background: '#1c1c22',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                >
-                  <svg
-                    width="21"
-                    height="15"
-                    viewBox="0 0 21 15"
-                    style={{ display: 'block', flex: 'none' }}
-                  >
-                    <text
-                      x="0.6"
-                      y="14.2"
-                      fontFamily="Noto Music"
-                      fontSize="14"
-                      fill="rgba(236,231,221,.8)"
-                    >
-                      {subInfo.g}
-                    </text>
-                  </svg>
-                  <span
-                    style={{
-                      font: '500 8.5px IBM Plex Mono,monospace',
-                      letterSpacing: '.08em',
-                      color: 'rgba(236,231,221,.45)',
-                    }}
-                  >
-                    {subInfo.t}
-                  </span>
                 </button>
                 <div style={{ flex: 1 }} />
                 <button

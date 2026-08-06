@@ -5,14 +5,6 @@ export const uid = (): string => Math.random().toString(36).slice(2, 9);
 /** Slots in a bar. */
 export const RES = (b: Bar): number => b.n * b.sub;
 
-export const blankBar = (src?: Bar | null): Bar => ({
-  id: uid(),
-  n: src ? src.n : 4,
-  dv: src ? src.dv : 4,
-  sub: src ? src.sub : 4,
-  notes: [],
-});
-
 /** A straight-8s groove, so a new sheet opens on something playable. */
 export const seedBar = (): Bar => ({
   id: uid(),

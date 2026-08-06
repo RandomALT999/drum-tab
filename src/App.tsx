@@ -13,7 +13,7 @@ import type {
   Voice,
   VoiceId,
 } from './model/types';
-import { RES, blankBar, clone, newProj, uid } from './model/factory';
+import { RES, clone, newProj, uid } from './model/factory';
 import { FEELS, feelBar } from './model/feels';
 import type { Feel } from './model/feels';
 import { load, save } from './model/storage';
@@ -21,7 +21,7 @@ import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
-import { NOTE0, PVBH, SIGS, SUBS, V, VBH, VBW, VI, yOf } from './notation/constants';
+import { NOTE0, PVBH, SIGS, V, VBH, VBW, VI, yOf } from './notation/constants';
 import { canPlace, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT } from './config';
 import { Library } from './screens/Library';
@@ -396,6 +396,7 @@ export class App extends Component<Record<string, never>, AppState> {
   stop(): void {
     clearInterval(this.iv);
     cancelAnimationFrame(this.raf);
+    this.kit.panic();
     this.wakeOff();
     if (this.state.playing || this.state.cur || this.state.count)
       this.setState({ playing: false, cur: null, count: 0 });
@@ -584,7 +585,6 @@ export class App extends Component<Record<string, never>, AppState> {
       bar.notes = bar.notes.filter((n) => !(n.v === v && n.s === s));
       bar.notes.push({ id, v, s, d: st.dur, a: st.art });
     });
-    this.setState({ sel: { barId, noteId: id } });
     if (!st.playing) this.audition(v, st.art);
   }
 
@@ -621,6 +621,8 @@ export class App extends Component<Record<string, never>, AppState> {
         return;
       }
       this.mutNote(this.state.sel.barId, n.id, (x) => void (x.d = d));
+      this.setState({ dur: d, sel: null });
+      return;
     }
     this.setState({ dur: d });
   };
@@ -630,15 +632,18 @@ export class App extends Component<Record<string, never>, AppState> {
     if (n && this.state.sel) {
       this.mutNote(this.state.sel.barId, n.id, (x) => void (x.a = a));
       this.audition(n.v, a);
+      this.setState({ art: a, sel: null });
+      return;
     }
     this.setState({ art: a });
   };
 
   toggleRest = (): void => {
     const n = this.selNote();
-    if (n && this.state.sel)
+    if (n && this.state.sel) {
       this.mutNote(this.state.sel.barId, n.id, (x) => void (x.rest = !x.rest));
-    else this.flash('SELECT A NOTE');
+      this.setState({ sel: null });
+    } else this.flash('SELECT A NOTE');
   };
 
   /** A meter change applies to the tapped bar and every bar after it. */
@@ -660,22 +665,6 @@ export class App extends Component<Record<string, never>, AppState> {
       },
       n + '/' + dv,
     );
-  }
-
-  /** Cycles 16THS → 8THS → TRIPLETS, re-timing existing notes proportionally. */
-  cycleSub(barId: string): void {
-    this.edit((p) => {
-      const bb = this.findBar(p, barId);
-      if (!bb) return;
-      const i = SUBS.findIndex((s) => s.s === bb.sub);
-      const nx = SUBS[(i < 0 ? 0 : i + 1) % SUBS.length].s;
-      const old = bb.sub;
-      bb.sub = nx;
-      bb.notes.forEach((n) => {
-        n.s = Math.round((n.s * nx) / old);
-      });
-      bb.notes = bb.notes.filter((n) => n.s < RES(bb));
-    });
   }
 
   /* ---------- gestures: tap add / tap select / double-tap delete / drag move ---------- */
@@ -736,7 +725,7 @@ export class App extends Component<Record<string, never>, AppState> {
     }
     const d = this.state.drag;
     if (g.moved && g.note && d) {
-      this.setState({ drag: null, sel: { barId: bar.id, noteId: g.note.id } });
+      this.setState({ drag: null, sel: null });
       this.mutNote(bar.id, g.note.id, (n) => {
         n.v = d.v;
         n.s = d.s;
@@ -811,6 +800,18 @@ export class App extends Component<Record<string, never>, AppState> {
       pp.parts.push({ id: uid(), name: 'Part ' + (pp.parts.length + 1), bars: [bar] });
     });
     this.setState({ part: p.parts.length, bar: 0, sel: null });
+  };
+
+  /** A new bar arrives with its cymbal line filled in, like a new part does. */
+  addBar = (feel: Feel, at?: number): void => {
+    const part = this.curPart();
+    const near = part.bars[at !== undefined ? Math.max(0, at - 1) : part.bars.length - 1];
+    const bar = feelBar(feel, near?.n ?? 4, near?.dv ?? 4);
+    const idx = at !== undefined ? at : part.bars.length;
+    this.edit((pp) => {
+      pp.parts[this.state.part].bars.splice(idx, 0, bar);
+    });
+    this.setState({ bar: idx, sel: null });
   };
 
   createProject = (feel: Feel): void => {
@@ -918,15 +919,9 @@ export class App extends Component<Record<string, never>, AppState> {
           },
           {
             g: '+',
-            t: 'BLANK AFTER',
+            t: 'BAR AFTER',
             ...mono,
-            act: () => {
-              this.edit((pp) => {
-                const bs = pp.parts[st.part].bars;
-                bs.splice(idx + 1, 0, blankBar(bs[idx]));
-              });
-              close();
-            },
+            act: () => this.setState({ sheet: { k: 'feel', target: 'bar', at: idx + 1 } }),
           },
           {
             g: '↑',
@@ -1076,7 +1071,12 @@ export class App extends Component<Record<string, never>, AppState> {
 
     if (S.k === 'feel') {
       return {
-        title: S.target === 'part' ? 'NEW PART · FEEL' : 'NEW SHEET · FEEL',
+        title:
+          S.target === 'part'
+            ? 'NEW PART · FEEL'
+            : S.target === 'bar'
+              ? 'NEW BAR · FEEL'
+              : 'NEW SHEET · FEEL',
         close,
         items: FEELS.map((f) => ({
           g: f.glyph,
@@ -1086,6 +1086,7 @@ export class App extends Component<Record<string, never>, AppState> {
           min: '150px',
           act: () => {
             if (S.target === 'part') this.addPart(f);
+            else if (S.target === 'bar') this.addBar(f, S.at);
             else this.createProject(f);
             close();
           },
@@ -1117,21 +1118,17 @@ export class App extends Component<Record<string, never>, AppState> {
             close();
           },
         },
-        {
-          g: '+',
-          t: 'BLANK BAR',
-          ...mono,
-          fs: '18px',
-          min: '150px',
+        ...FEELS.map((f) => ({
+          g: f.glyph,
+          t: f.label,
+          fs: '26px',
+          dy: '5px',
+          min: '108px',
           act: () => {
-            this.edit((pp) => {
-              const bs = pp.parts[st.part].bars;
-              bs.push(blankBar(bs[bs.length - 1]));
-            });
-            this.setState({ bar: part.bars.length });
+            this.addBar(f);
             close();
           },
-        },
+        })),
       ],
     };
   }

@@ -1,12 +1,5 @@
 export type VoiceId =
-  | 'crash'
-  | 'hihat'
-  | 'ride'
-  | 'hitom'
-  | 'midtom'
-  | 'snare'
-  | 'floor'
-  | 'kick';
+  'crash' | 'hihat' | 'ride' | 'hitom' | 'midtom' | 'snare' | 'floor' | 'kick';
 
 export type Articulation = 'normal' | 'accent' | 'ghost' | 'open';
 
@@ -106,5 +99,5 @@ export type SheetState =
   | { k: 'bar'; idx: number; barId: string }
   | { k: 'part'; name?: string }
   | { k: 'addbar' }
-  /** pick the cymbal feel a new part (or sheet) starts on */
-  | { k: 'feel'; target: 'part' | 'project' };
+  /** pick the cymbal feel a new part, sheet or bar starts on */
+  | { k: 'feel'; target: 'part' | 'project' | 'bar'; at?: number };
