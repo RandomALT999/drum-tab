@@ -38,8 +38,9 @@ npm install
 npm run dev
 ```
 
-`npm run build` produces the static site in `dist/`. Pushing to `main` deploys
-it to GitHub Pages via `.github/workflows/deploy.yml`.
+`npm run build` produces the static site in `dist/`. Pushing to `main` builds it
+and force-pushes the result to the `gh-pages` branch, which GitHub Pages serves
+(see `.github/workflows/deploy.yml`).
 
 ## How it's built
 
