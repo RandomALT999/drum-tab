@@ -372,6 +372,10 @@ export class App extends Component<Record<string, never>, AppState> {
   };
 
   async start(): Promise<void> {
+    // start() awaits the audio unlock, so two quick taps can both get here.
+    // Clear any scheduler already running or we end up with two of them.
+    clearInterval(this.iv);
+    cancelAnimationFrame(this.raf);
     // On iOS the context can still be suspended here, and a suspended context
     // reports currentTime 0 — every event would be scheduled in the past and
     // dropped. Resume before reading the clock.
