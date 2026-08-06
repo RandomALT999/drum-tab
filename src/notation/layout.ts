@@ -1,4 +1,4 @@
-import type { Bar, Drag, Note } from '../model/types';
+import type { Bar, Drag, Note, NoteValue } from '../model/types';
 import { RES } from '../model/factory';
 import {
   ACCDN,
@@ -46,8 +46,37 @@ export const xOf = (bar: Bar, s: number): number => NOTE0 + s * slotW(bar);
  * sixteenths on 1 e & a …. On a triplet bar one slot *is* an eighth triplet.
  */
 export const slotsFor = (bar: Bar, d: number): number => {
-  if (bar.sub % 3 === 0 && bar.sub % 4 !== 0) return d <= 4 ? bar.sub : 1;
+  if (isTriplet(bar)) return d <= 4 ? bar.sub : 1;
   return Math.max(1, Math.round((bar.sub * 4) / d));
+};
+
+export const isTriplet = (bar: Bar): boolean => bar.sub % 3 === 0 && bar.sub % 4 !== 0;
+
+/**
+ * Can a note of value `d` legally begin on slot `s`? A quarter starts on a
+ * beat, an eighth on a beat or an off-beat, a sixteenth anywhere. Placement
+ * snaps to this, so the only way to break it was editing an existing note's
+ * value — which is what this guards.
+ */
+export const canPlace = (bar: Bar, s: number, d: number): boolean => s % slotsFor(bar, d) === 0;
+
+/** The longest value that legally starts on `s`, at or shorter than `want`. */
+export const fitDur = (bar: Bar, s: number, want: NoteValue): NoteValue => {
+  const order: NoteValue[] = [4, 8, 16];
+  for (const d of order) if (d >= want && canPlace(bar, s, d)) return d;
+  return 16;
+};
+
+/**
+ * How many beats a beam may span. Running eighths read better grouped by the
+ * half bar than beamed in pairs — that's the usual drum-chart convention.
+ * Compound meters group by three eighths; triplet bars stay at one beat each
+ * so every triplet keeps its own bracket.
+ */
+export const beamGroup = (bar: Bar): number => {
+  if (isTriplet(bar)) return 1;
+  if (bar.dv === 8) return bar.n % 3 === 0 ? 3 : 2;
+  return 2;
 };
 
 export interface Head {
@@ -217,8 +246,11 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const grp = (list: Note[], up: boolean): void => {
     const dir = up ? 1 : -1;
     const tip = up ? UPEND : DNEND;
-    for (let b = 0; b < bar.n; b++) {
-      const inBeat = list.filter((n) => Math.floor(n.s / bar.sub) === b);
+    const span = beamGroup(bar);
+    for (let b = 0; b < bar.n; b += span) {
+      const lo = b * bar.sub;
+      const hi = Math.min(b + span, bar.n) * bar.sub;
+      const inBeat = list.filter((n) => n.s >= lo && n.s < hi);
       if (!inBeat.length) continue;
       const slots = [...new Set(inBeat.map((n) => n.s))].sort((a, c) => a - c);
       const cols: Col[] = slots.map((s) => {

@@ -3,7 +3,15 @@ import type { App } from '../App';
 import { ACCENT, SAFE_BOTTOM } from '../config';
 import { CH, VI } from '../notation/constants';
 
-const glyph = (w: number, h: number, vb: string, x: number, y: number, fs: number, ch: string): ReactNode => (
+const glyph = (
+  w: number,
+  h: number,
+  vb: string,
+  x: number,
+  y: number,
+  fs: number,
+  ch: string,
+): ReactNode => (
   <svg width={w} height={h} viewBox={vb} style={{ display: 'block', flex: 'none' }}>
     <text x={x} y={y} fontFamily="Noto Music" fontSize={fs} fill="currentColor">
       {ch}
@@ -53,6 +61,7 @@ export function Palette({ app }: { app: App }) {
     label: string,
     body: ReactNode,
     onClick: () => void,
+    enabled = true,
   ): ReactNode => (
     <button
       onClick={onClick}
@@ -67,6 +76,8 @@ export function Palette({ app }: { app: App }) {
         justifyContent: 'center',
         gap: 3,
         ...btn(on),
+        // a value the selected note can't legally take reads as unavailable
+        opacity: enabled ? 1 : 0.32,
       }}
     >
       {body}
@@ -114,7 +125,10 @@ export function Palette({ app }: { app: App }) {
           disabled={!st.canUndo}
           aria-label="Undo"
           style={{
-            ...smallChip('#1c1c22', st.canUndo ? 'rgba(236,231,221,.6)' : 'rgba(236,231,221,.22)'),
+            ...smallChip(
+              '#1c1c22',
+              st.canUndo ? 'rgba(236,231,221,.6)' : 'rgba(236,231,221,.22)',
+            ),
             padding: '0 9px',
             fontSize: 12,
             letterSpacing: 0,
@@ -128,7 +142,10 @@ export function Palette({ app }: { app: App }) {
           disabled={!st.canRedo}
           aria-label="Redo"
           style={{
-            ...smallChip('#1c1c22', st.canRedo ? 'rgba(236,231,221,.6)' : 'rgba(236,231,221,.22)'),
+            ...smallChip(
+              '#1c1c22',
+              st.canRedo ? 'rgba(236,231,221,.6)' : 'rgba(236,231,221,.22)',
+            ),
             padding: '0 9px',
             fontSize: 12,
             letterSpacing: 0,
@@ -170,17 +187,37 @@ export function Palette({ app }: { app: App }) {
       </div>
 
       <div style={{ display: 'flex', gap: 4 }}>
-        {cell(dv === 4, '1/4', glyph(9, 23, '0 0 13 34', 0, 32.5, 32, CH.d4), () => app.applyDur(4))}
-        {cell(dv === 8, '1/8', glyph(14, 23, '0 0 20 34', 0, 32.5, 32, CH.d8), () => app.applyDur(8))}
+        {cell(
+          dv === 4,
+          '1/4',
+          glyph(9, 23, '0 0 13 34', 0, 32.5, 32, CH.d4),
+          () => app.applyDur(4),
+          app.durAllowed(4),
+        )}
+        {cell(
+          dv === 8,
+          '1/8',
+          glyph(14, 23, '0 0 20 34', 0, 32.5, 32, CH.d8),
+          () => app.applyDur(8),
+          app.durAllowed(8),
+        )}
         {cell(dv === 16, '1/16', glyph(14, 23, '0 0 21 34', 0, 32.5, 32, CH.d16), () =>
           app.applyDur(16),
         )}
-        {cell(!!(sn && sn.rest), 'REST', glyph(10, 23, '0 0 14 32', 0, 28, 28, CH.r4), app.toggleRest)}
+        {cell(
+          !!(sn && sn.rest),
+          'REST',
+          glyph(10, 23, '0 0 14 32', 0, 28, 28, CH.r4),
+          app.toggleRest,
+        )}
         {cell(av === 'normal', 'PLAIN', glyph(9, 9, '0 0 9 9', -0.5, 6.7, 22, CH.headN), () =>
           app.applyArt('normal'),
         )}
-        {cell(av === 'accent', 'ACCENT', glyph(15, 11, '0 0 17 12', -1.1, 1.4, 32, CH.accent), () =>
-          app.applyArt('accent'),
+        {cell(
+          av === 'accent',
+          'ACCENT',
+          glyph(15, 11, '0 0 17 12', -1.1, 1.4, 32, CH.accent),
+          () => app.applyArt('accent'),
         )}
         {cell(
           av === 'ghost',

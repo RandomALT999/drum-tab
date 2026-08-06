@@ -22,7 +22,7 @@ import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
 import { NOTE0, PVBH, SIGS, SUBS, V, VBH, VBW, VI, yOf } from './notation/constants';
-import { slotW, slotsFor, xOf } from './notation/layout';
+import { canPlace, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
@@ -602,9 +602,26 @@ export class App extends Component<Record<string, never>, AppState> {
     });
   }
 
+  /** Is `d` a legal value for the selected note, where it currently sits? */
+  durAllowed(d: NoteValue): boolean {
+    const n = this.selNote();
+    if (!n || !this.state.sel) return true;
+    const bar = this.findBar(this.proj(), this.state.sel.barId);
+    return !bar || canPlace(bar, n.s, d);
+  }
+
   applyDur = (d: NoteValue): void => {
     const n = this.selNote();
-    if (n && this.state.sel) this.mutNote(this.state.sel.barId, n.id, (x) => void (x.d = d));
+    if (n && this.state.sel) {
+      // A quarter can't begin on an off-beat and an eighth can't begin on a
+      // sixteenth — placement snaps to that, and editing the value must not be
+      // a way around it.
+      if (!this.durAllowed(d)) {
+        this.flash(d === 4 ? '1/4 STARTS ON A BEAT' : '1/8 STARTS ON A BEAT OR &');
+        return;
+      }
+      this.mutNote(this.state.sel.barId, n.id, (x) => void (x.d = d));
+    }
     this.setState({ dur: d });
   };
 

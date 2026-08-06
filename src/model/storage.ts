@@ -1,5 +1,6 @@
 import type { Project } from './types';
 import { newProj } from './factory';
+import { fitDur } from '../notation/layout';
 
 /* Keys are versioned so a schema change resets cleanly rather than
    half-loading an old shape. */
@@ -23,6 +24,10 @@ function migrate(p: Project): void {
         b.sub = 4;
         b.notes.forEach((n) => (n.s *= 2));
       }
+      // Editing a note's value used to be able to put a quarter on an off-beat,
+      // which cannot be drawn sensibly. Shorten such notes to a value that fits
+      // where they already sit rather than moving them.
+      b.notes.forEach((n) => (n.d = fitDur(b, n.s, n.d)));
     }),
   );
 }
