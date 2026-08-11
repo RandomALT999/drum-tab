@@ -10,6 +10,7 @@ export function PlayMode({ app }: { app: App }) {
   const part = app.curPart();
   const soft = softAccent(ACCENT);
   const vb = app.viewBox(true);
+  const { width: barW, cap } = app.barLayout(true);
   const loopOn = !!(st.loop && st.loop.a && st.loop.b);
   const speedLabel = (st.speed === 1 ? '1' : String(st.speed).replace('0.', '.')) + '×';
 
@@ -47,8 +48,8 @@ export function PlayMode({ app }: { app: App }) {
       >
         <div
           style={{
-            font: '500 12px Helvetica Neue,Helvetica,sans-serif',
-            color: 'rgba(236,231,221,.65)',
+            font: '500 14px Helvetica Neue,Helvetica,sans-serif',
+            color: 'rgba(236,231,221,.7)',
             whiteSpace: 'nowrap',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
@@ -59,8 +60,8 @@ export function PlayMode({ app }: { app: App }) {
         <div style={{ flex: 1 }} />
         <div
           style={{
-            font: '600 11px IBM Plex Mono,monospace',
-            letterSpacing: '.08em',
+            font: '600 12.5px IBM Plex Mono,monospace',
+            letterSpacing: '.06em',
             color: ACCENT,
             whiteSpace: 'nowrap',
           }}
@@ -76,8 +77,8 @@ export function PlayMode({ app }: { app: App }) {
           }}
           aria-label="Back to editor"
           style={{
-            width: 34,
-            height: 34,
+            width: 38,
+            height: 38,
             border: '1px solid rgba(236,231,221,.18)',
             borderRadius: 9,
             display: 'grid',
@@ -92,16 +93,16 @@ export function PlayMode({ app }: { app: App }) {
       </div>
 
       <div
-        ref={app.setScroller}
+        ref={app.setPlayPane}
         style={{
           flex: '1 1 0',
           minHeight: 0,
           overflowY: 'auto',
           overflowX: 'hidden',
-          padding: '4px 16px 20px',
+          padding: '6px 14px 16px',
           display: 'flex',
           flexWrap: 'wrap',
-          gap: '6px 18px',
+          gap: '10px 16px',
           alignContent: 'flex-start',
         }}
       >
@@ -125,12 +126,12 @@ export function PlayMode({ app }: { app: App }) {
               ref={(el) => {
                 if (el) app.barEls[bar.id] = el;
               }}
-              style={{ flex: '1 1 42%', minWidth: 320 }}
+              style={{ width: barW, flex: 'none' }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: 2 }}>
                 <span
                   style={{
-                    font: '600 10px IBM Plex Mono,monospace',
+                    font: '600 12px IBM Plex Mono,monospace',
                     color: hot >= 0 ? ACCENT : 'rgba(236,231,221,.4)',
                   }}
                 >
@@ -138,9 +139,9 @@ export function PlayMode({ app }: { app: App }) {
                 </span>
                 <span
                   style={{
-                    font: '400 9px IBM Plex Mono,monospace',
+                    font: '400 10px IBM Plex Mono,monospace',
                     letterSpacing: '.1em',
-                    color: 'rgba(236,231,221,.28)',
+                    color: 'rgba(236,231,221,.3)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -149,14 +150,7 @@ export function PlayMode({ app }: { app: App }) {
                   {partName}
                 </span>
               </div>
-              <Staff
-                b={render}
-                vb={vb}
-                acc={ACCENT}
-                labels={st.labels}
-                maxHeight="min(230px,42vh)"
-                play
-              />
+              <Staff b={render} vb={vb} acc={ACCENT} labels={st.labels} maxHeight={cap} play />
             </div>
           );
         })}
@@ -170,8 +164,8 @@ export function PlayMode({ app }: { app: App }) {
           gap: 22,
           padding: '6px 0 10px',
           paddingBottom: SAFE_BOTTOM,
-          font: '400 9px IBM Plex Mono,monospace',
-          letterSpacing: '.14em',
+          font: '400 10px IBM Plex Mono,monospace',
+          letterSpacing: '.12em',
           color: 'rgba(236,231,221,.3)',
         }}
       >

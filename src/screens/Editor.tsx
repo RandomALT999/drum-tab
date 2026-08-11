@@ -14,7 +14,7 @@ export function Editor({ app }: { app: App }) {
   const nb = part.bars.length;
   const soft = softAccent(ACCENT);
   const vb = app.viewBox();
-  const cap = app.barCap();
+  const { width: barW, cap } = app.barLayout();
   const compact = st.compact;
 
   return (
@@ -37,7 +37,7 @@ export function Editor({ app }: { app: App }) {
           display: 'flex',
           alignItems: 'center',
           gap: 10,
-          padding: compact ? '6px 14px 6px' : '12px 14px 11px',
+          padding: compact ? '6px 12px 6px' : '10px 12px 9px',
           borderBottom: '1px solid rgba(236,231,221,.12)',
           flex: 'none',
         }}
@@ -75,7 +75,7 @@ export function Editor({ app }: { app: App }) {
               background: 'none',
               border: 0,
               outline: 'none',
-              font: `500 ${compact ? 15 : 18}px/1.2 Helvetica Neue,Helvetica,sans-serif`,
+              font: `500 ${compact ? 16 : 19}px/1.2 Helvetica Neue,Helvetica,sans-serif`,
               letterSpacing: '-.015em',
               padding: 0,
             }}
@@ -101,7 +101,7 @@ export function Editor({ app }: { app: App }) {
             />
             <span
               style={{
-                font: '400 9px IBM Plex Mono,monospace',
+                font: '400 9.5px IBM Plex Mono,monospace',
                 letterSpacing: '.06em',
                 color: 'rgba(236,231,221,.45)',
                 whiteSpace: 'nowrap',
@@ -127,8 +127,8 @@ export function Editor({ app }: { app: App }) {
             display: 'flex',
             alignItems: 'center',
             gap: 6,
-            font: '600 10px IBM Plex Mono,monospace',
-            letterSpacing: '.08em',
+            font: '600 11px IBM Plex Mono,monospace',
+            letterSpacing: '.06em',
             flex: 'none',
           }}
         >
@@ -191,9 +191,13 @@ export function Editor({ app }: { app: App }) {
           flex: '1 1 0',
           minHeight: 0,
           background: '#111116',
-          padding: compact ? '5px 10px 2px' : '12px 12px 4px',
+          padding: compact ? '6px 10px 4px' : '10px 12px 6px',
           overflowY: 'auto',
           overflowX: 'hidden',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignContent: 'flex-start',
+          gap: compact ? '6px 12px' : '8px 14px',
         }}
       >
         {part.bars.map((bar, i) => {
@@ -211,18 +215,18 @@ export function Editor({ app }: { app: App }) {
           });
           const selected = st.bar === i;
           return (
-            <div key={bar.id} style={{ marginBottom: compact ? 6 : 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 1 }}>
+            <div key={bar.id} style={{ width: barW, flex: 'none' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
                 <button
                   onClick={() => app.setState({ bar: i })}
                   style={{
-                    height: 24,
-                    padding: '0 9px',
-                    borderRadius: 6,
+                    height: 28,
+                    padding: '0 11px',
+                    borderRadius: 7,
                     display: 'grid',
                     placeItems: 'center',
-                    font: '600 9px IBM Plex Mono,monospace',
-                    letterSpacing: '.1em',
+                    font: '600 10px IBM Plex Mono,monospace',
+                    letterSpacing: '.08em',
                     background: selected ? '#ece7dd' : '#1c1c22',
                     color: selected ? '#0d0d10' : 'rgba(236,231,221,.6)',
                   }}
@@ -232,13 +236,13 @@ export function Editor({ app }: { app: App }) {
                 <button
                   onClick={() => app.setState({ sheet: { k: 'sig', barId: bar.id } })}
                   style={{
-                    height: 24,
-                    padding: '0 9px',
-                    borderRadius: 6,
+                    height: 28,
+                    padding: '0 11px',
+                    borderRadius: 7,
                     background: '#1c1c22',
                     display: 'grid',
                     placeItems: 'center',
-                    font: '500 9.5px IBM Plex Mono,monospace',
+                    font: '500 10.5px IBM Plex Mono,monospace',
                     color: 'rgba(236,231,221,.6)',
                   }}
                 >
@@ -249,14 +253,14 @@ export function Editor({ app }: { app: App }) {
                   onClick={() => app.setState({ sheet: { k: 'bar', idx: i, barId: bar.id } })}
                   aria-label="Bar menu"
                   style={{
-                    height: 24,
-                    width: 28,
-                    borderRadius: 6,
+                    height: 28,
+                    width: 32,
+                    borderRadius: 7,
                     background: '#1c1c22',
                     display: 'grid',
                     placeItems: 'center',
-                    font: '500 11px IBM Plex Mono,monospace',
-                    color: 'rgba(236,231,221,.5)',
+                    font: '500 13px IBM Plex Mono,monospace',
+                    color: 'rgba(236,231,221,.55)',
                   }}
                 >
                   ⋯

@@ -62,6 +62,10 @@ export interface AppState {
   swUpdate: boolean;
   /** landscape on a short viewport — trim the chrome, widen the staff */
   compact: boolean;
+  paneW: number;
+  /** measured box of Play mode's scroller, for its own bar sizing */
+  playPaneH: number;
+  playPaneW: number;
 }
 
 interface Gesture {
@@ -96,6 +100,7 @@ export class App extends Component<Record<string, never>, AppState> {
 
   /* dom */
   private pane: HTMLElement | null = null;
+  private playPane: HTMLElement | null = null;
   private scroller: HTMLElement | null = null;
   barEls: Record<string, HTMLElement> = {};
   private ro: ResizeObserver | undefined;
@@ -168,6 +173,9 @@ export class App extends Component<Record<string, never>, AppState> {
       canRedo: false,
       swUpdate: false,
       compact: false,
+      paneW: 0,
+      playPaneH: 0,
+      playPaneW: 0,
     };
   }
 
@@ -216,21 +224,48 @@ export class App extends Component<Record<string, never>, AppState> {
       requestAnimationFrame(() => this.measure());
     }
   };
-  setScroller = (el: HTMLElement | null): void => {
-    if (el) this.scroller = el;
+  /** Play mode's scroller doubles as the surface its bar cap is measured from. */
+  setPlayPane = (el: HTMLElement | null): void => {
+    if (el && el !== this.playPane) {
+      this.playPane = el;
+      this.scroller = el;
+      this.ro?.observe(el);
+      requestAnimationFrame(() => this.measure());
+    }
   };
 
   /** The bar SVG is height-capped from the measured pane so a whole bar —
       kick line, beat numbers and all — fits without scrolling. */
+  /** Content width — clientWidth includes padding, which would overcount the
+      room available for tiling bars by a whole gutter. */
+  private innerW(el: HTMLElement): number {
+    const cs = getComputedStyle(el);
+    return (
+      el.clientWidth - parseFloat(cs.paddingLeft || '0') - parseFloat(cs.paddingRight || '0')
+    );
+  }
+
   private measure(): void {
     // matchMedia's change event is the primary signal for `compact`; re-deriving
     // it here too means a missed or coalesced event can't leave the layout stale.
     const compact = !!this.mq?.matches;
     if (compact !== this.state.compact) this.setState({ compact });
+    const pp = this.playPane;
+    if (pp) {
+      const ph = pp.clientHeight;
+      const pw = this.innerW(pp);
+      if (
+        (ph && Math.abs(ph - this.state.playPaneH) > 2) ||
+        (pw && Math.abs(pw - this.state.playPaneW) > 2)
+      )
+        this.setState({ playPaneH: ph, playPaneW: pw });
+    }
     const el = this.pane;
     if (!el) return;
     const h = el.clientHeight;
-    if (h && Math.abs(h - this.state.paneH) > 2) this.setState({ paneH: h });
+    const w = this.innerW(el);
+    if ((h && Math.abs(h - this.state.paneH) > 2) || (w && Math.abs(w - this.state.paneW) > 2))
+      this.setState({ paneH: h, paneW: w });
   }
   /**
    * Height cap for a bar's SVG, measured from the pane rather than fixed, so a
@@ -239,14 +274,32 @@ export class App extends Component<Record<string, never>, AppState> {
    * landscape phone the pane is shorter than that, and a hard floor would push
    * the low voices out of view instead of scaling the bar down.
    */
-  barCap(): string {
-    const h = this.state.paneH;
-    if (!h) return '196px';
-    // 42 leaves room for the bar's own header row (badge / meter / subdivision),
-    // the gap below it and the pane's padding, so the whole *block* fits the
-    // pane — not just the staff.
-    const roomy = h - 60;
-    return (roomy >= 148 ? roomy : Math.max(72, h - 42)) + 'px';
+  /**
+   * How to tile bars across the pane: the most that fit one row while a whole
+   * row still fits the pane's height, with each bar sized to its viewBox
+   * aspect. Deriving width from a height cap instead left the SVG in a box far
+   * wider than the cap allowed, and preserveAspectRatio pillarboxed the staff —
+   * a landscape phone drew a 330px staff inside an 1180px box.
+   */
+  barLayout(play = false): { width: string; cap: string } {
+    const aspect = (VBW - this.vbX()) / (play ? PVBH : VBH);
+    const w = play ? this.state.playPaneW : this.state.paneW;
+    const h = play ? this.state.playPaneH : this.state.paneH;
+    if (!w || !h) return { width: '100%', cap: (play ? 240 : 196) + 'px' };
+    const gap = play ? 16 : this.state.compact ? 12 : 14;
+    // room for the bar's own caption row above the staff
+    const head = play ? 24 : 34;
+    let bw = w;
+    for (let n = 1; n <= 4; n++) {
+      bw = (w - gap * (n - 1)) / n;
+      if (bw / aspect + head <= h) break;
+    }
+    // min() guards the case where a vertical scrollbar appears after the
+    // measurement and narrows the content box — the bar can never out-grow it.
+    return {
+      width: `min(100%, ${Math.floor(bw)}px)`,
+      cap: Math.floor(bw / aspect) + 'px',
+    };
   }
 
   /* ---------- project access ---------- */

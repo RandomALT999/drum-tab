@@ -2,35 +2,35 @@ import type { App } from '../App';
 import { ACCENT, softAccent } from '../config';
 import { SPEEDS } from '../notation/constants';
 
-const chipAt =
-  (h: number) =>
-  (bg: string, color: string, pad = 12): React.CSSProperties => ({
-    height: h,
+export function Transport({ app }: { app: App }) {
+  const st = app.state;
+  const p = app.proj();
+  const soft = softAccent(ACCENT);
+  const H = st.compact ? 42 : 50;
+  const fs = st.compact ? 10 : 10.5;
+  const loopOn = !!(st.loop && st.loop.a && st.loop.b);
+  const loopActive = st.loopArm || loopOn;
+  const speedLabel = (st.speed === 1 ? '1' : String(st.speed).replace('0.', '.')) + '×';
+
+  const chip = (bg: string, color: string, pad = 11): React.CSSProperties => ({
+    height: H,
     padding: `0 ${pad}px`,
-    borderRadius: 10,
+    borderRadius: 11,
     display: 'grid',
     placeItems: 'center',
-    font: '600 9.5px IBM Plex Mono,monospace',
-    letterSpacing: '.1em',
+    font: `600 ${fs}px IBM Plex Mono,monospace`,
+    letterSpacing: '.08em',
+    whiteSpace: 'nowrap',
     flex: 'none',
     background: bg,
     color,
   });
 
-export function Transport({ app }: { app: App }) {
-  const st = app.state;
-  const p = app.proj();
-  const soft = softAccent(ACCENT);
-  const H = st.compact ? 38 : 46;
-  const chip = chipAt(H);
-  const loopOn = !!(st.loop && st.loop.a && st.loop.b);
-  const loopActive = st.loopArm || loopOn;
-  const speedLabel = (st.speed === 1 ? '1' : String(st.speed).replace('0.', '.')) + '×';
-
+  // Short enough that the row fits a 393px phone without scrolling sideways.
   const loopLabel = st.loopArm
     ? st.loop && st.loop.a && !st.loop.b
-      ? 'TAP END'
-      : 'TAP START'
+      ? 'SET B'
+      : 'SET A'
     : loopOn
       ? 'LOOP ON'
       : 'LOOP';
@@ -40,11 +40,11 @@ export function Transport({ app }: { app: App }) {
       style={{
         display: 'flex',
         alignItems: 'center',
-        gap: 7,
-        padding: st.compact ? '6px 14px' : '11px 14px',
+        gap: 8,
+        padding: st.compact ? '6px 12px' : '10px 12px',
         borderBottom: '1px solid rgba(236,231,221,.12)',
-        overflowX: 'auto',
-        overflowY: 'hidden',
+        // wrap rather than scroll — reaching a control must never need a swipe
+        flexWrap: 'wrap',
         flex: 'none',
       }}
     >
@@ -62,7 +62,7 @@ export function Transport({ app }: { app: App }) {
           flex: 'none',
         }}
       >
-        <svg width="15" height="17" viewBox="0 0 14 16">
+        <svg width="17" height="19" viewBox="0 0 14 16">
           <path
             d={st.playing ? 'M2 1h3.6v14H2zM8.4 1H12v14H8.4z' : 'M1 1 13 8 1 15Z'}
             fill="currentColor"
@@ -75,47 +75,51 @@ export function Transport({ app }: { app: App }) {
           display: 'flex',
           alignItems: 'center',
           background: '#17171c',
-          borderRadius: 10,
+          borderRadius: 11,
           height: H,
           flex: 'none',
         }}
       >
         <button
-          onClick={() => app.edit((pp) => void (pp.bpm = Math.max(30, pp.bpm - 1)), undefined, 'bpm')}
+          onClick={() =>
+            app.edit((pp) => void (pp.bpm = Math.max(30, pp.bpm - 1)), undefined, 'bpm')
+          }
           aria-label="Decrease tempo"
           style={{
             width: 34,
             height: H,
             display: 'grid',
             placeItems: 'center',
-            font: '400 18px IBM Plex Mono,monospace',
-            color: 'rgba(236,231,221,.5)',
+            font: '400 21px IBM Plex Mono,monospace',
+            color: 'rgba(236,231,221,.55)',
           }}
         >
           −
         </button>
-        <div style={{ textAlign: 'center', minWidth: 36 }}>
-          <div style={{ font: '500 18px/1 IBM Plex Mono,monospace' }}>{p.bpm}</div>
+        <div style={{ textAlign: 'center', minWidth: 38 }}>
+          <div style={{ font: '500 20px/1 IBM Plex Mono,monospace' }}>{p.bpm}</div>
           <div
             style={{
-              font: '400 7px/1.6 IBM Plex Mono,monospace',
+              font: '400 8px/1.5 IBM Plex Mono,monospace',
               letterSpacing: '.14em',
-              color: 'rgba(236,231,221,.4)',
+              color: 'rgba(236,231,221,.45)',
             }}
           >
             BPM
           </div>
         </div>
         <button
-          onClick={() => app.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 1)), undefined, 'bpm')}
+          onClick={() =>
+            app.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 1)), undefined, 'bpm')
+          }
           aria-label="Increase tempo"
           style={{
             width: 34,
             height: H,
             display: 'grid',
             placeItems: 'center',
-            font: '400 18px IBM Plex Mono,monospace',
-            color: 'rgba(236,231,221,.5)',
+            font: '400 21px IBM Plex Mono,monospace',
+            color: 'rgba(236,231,221,.55)',
           }}
         >
           +
@@ -129,20 +133,16 @@ export function Transport({ app }: { app: App }) {
             if (app.state.playing) app.restart();
           });
         }}
-        style={{ ...chip('#17171c', '#ece7dd'), font: '500 11px IBM Plex Mono,monospace' }}
+        style={{ ...chip('#17171c', '#ece7dd'), font: '500 13px IBM Plex Mono,monospace' }}
       >
         {speedLabel}
       </button>
 
       <button
         onClick={() => app.setState({ met: !st.met })}
-        style={chip(
-          st.met ? soft : '#17171c',
-          st.met ? ACCENT : 'rgba(236,231,221,.45)',
-          13,
-        )}
+        style={chip(st.met ? soft : '#17171c', st.met ? ACCENT : 'rgba(236,231,221,.5)')}
       >
-        METRONOME
+        CLICK
       </button>
 
       <button
@@ -155,31 +155,10 @@ export function Transport({ app }: { app: App }) {
         }}
         style={chip(
           loopActive ? soft : '#17171c',
-          loopActive ? ACCENT : 'rgba(236,231,221,.45)',
+          loopActive ? ACCENT : 'rgba(236,231,221,.5)',
         )}
       >
         {loopLabel}
-      </button>
-
-      <button
-        onClick={() => app.setState({ labels: !st.labels })}
-        style={chip(
-          st.labels ? soft : '#17171c',
-          st.labels ? ACCENT : 'rgba(236,231,221,.45)',
-        )}
-      >
-        KEY
-      </button>
-
-      <button
-        onClick={() =>
-          app.setState({ scope: st.scope === 'part' ? 'song' : 'part' }, () => {
-            if (app.state.playing) app.restart();
-          })
-        }
-        style={chip('#17171c', 'rgba(236,231,221,.7)')}
-      >
-        {st.scope === 'part' ? 'PART' : 'SONG'}
       </button>
     </div>
   );

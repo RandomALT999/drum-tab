@@ -1,20 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" rx="112" fill="#0d0d10"/>
   <!-- five-line percussion staff -->
-  <g stroke="#F5AE4B" stroke-width="12" stroke-linecap="round" opacity="0.5">
-    <path d="M96 176h320"/>
-    <path d="M96 236h320"/>
-    <path d="M96 296h320"/>
-    <path d="M96 356h320"/>
+  <g stroke="#ece7dd" stroke-opacity="0.22" stroke-width="10" stroke-linecap="round">
+    <path d="M104 196h304"/>
+    <path d="M104 232h304"/>
+    <path d="M104 268h304"/>
+    <path d="M104 304h304"/>
+    <path d="M104 340h304"/>
   </g>
-  <!-- x notehead (hi-hat) on the top space, with its stem -->
-  <g stroke="#F5AE4B" stroke-width="20" stroke-linecap="round">
-    <path d="M150 130l40 40M190 130l-40 40"/>
+  <!-- two beamed eighths: snare in the third space, bass drum in the bottom space -->
+  <g fill="#F5AE4B" stroke="#F5AE4B">
+    <ellipse cx="180" cy="250" rx="30" ry="21" transform="rotate(-18 180 250)" stroke="none"/>
+    <ellipse cx="330" cy="322" rx="30" ry="21" transform="rotate(-18 330 322)" stroke="none"/>
+    <g stroke-width="14">
+      <path d="M209 252V158"/>
+      <path d="M359 324V158"/>
+    </g>
+    <rect x="202" y="150" width="164" height="28" rx="3" stroke="none"/>
   </g>
-  <path d="M198 140V330" stroke="#ece7dd" stroke-width="18" stroke-linecap="round"/>
-  <!-- filled notehead (snare) inside the staff -->
-  <ellipse cx="318" cy="326" rx="46" ry="34" transform="rotate(-20 318 326)" fill="#ece7dd"/>
-  <path d="M362 316V140" stroke="#ece7dd" stroke-width="18" stroke-linecap="round"/>
-  <!-- beam joining the two stems -->
-  <path d="M190 140h180" stroke="#ece7dd" stroke-width="30" stroke-linecap="butt"/>
 </svg>

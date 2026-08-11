@@ -38,7 +38,7 @@ export function Library({ app }: { app: App }) {
         <div>
           <div
             style={{
-              font: '600 9px IBM Plex Mono,monospace',
+              font: '600 10px IBM Plex Mono,monospace',
               letterSpacing: '.2em',
               color: 'rgba(236,231,221,.4)',
             }}
@@ -93,7 +93,7 @@ export function Library({ app }: { app: App }) {
             >
               <div
                 style={{
-                  font: '500 15px Helvetica Neue,Helvetica,sans-serif',
+                  font: '500 17px Helvetica Neue,Helvetica,sans-serif',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
                   textOverflow: 'ellipsis',
@@ -103,7 +103,7 @@ export function Library({ app }: { app: App }) {
               </div>
               <div
                 style={{
-                  font: '400 10px IBM Plex Mono,monospace',
+                  font: '400 11px IBM Plex Mono,monospace',
                   letterSpacing: '.06em',
                   color: 'rgba(236,231,221,.42)',
                   marginTop: 5,
@@ -116,8 +116,8 @@ export function Library({ app }: { app: App }) {
               onClick={() => app.dupProject(p)}
               aria-label="Duplicate sheet"
               style={{
-                width: 38,
-                height: 38,
+                width: 42,
+                height: 42,
                 borderRadius: 10,
                 background: '#22222a',
                 display: 'grid',
@@ -134,8 +134,8 @@ export function Library({ app }: { app: App }) {
               disabled={lib.length < 2}
               aria-label="Delete sheet"
               style={{
-                width: 38,
-                height: 38,
+                width: 42,
+                height: 42,
                 borderRadius: 10,
                 background: '#22222a',
                 display: 'grid',
@@ -154,7 +154,7 @@ export function Library({ app }: { app: App }) {
 
       <div
         style={{
-          font: '400 11px/1.7 IBM Plex Mono,monospace',
+          font: '400 12px/1.7 IBM Plex Mono,monospace',
           color: 'rgba(236,231,221,.3)',
           marginTop: 4,
         }}
