@@ -84,6 +84,8 @@ export class App extends Component<Record<string, never>, AppState> {
   private history = new History();
   private g: Gesture = {};
   private lastTap: { id: string; t: number } | null = null;
+  /** whether the library came from storage rather than the bundled demo */
+  private restored = false;
 
   /* scheduler */
   private TL: Step[] = [];
@@ -133,7 +135,12 @@ export class App extends Component<Record<string, never>, AppState> {
     if (compact !== this.state.compact) this.setState({ compact }, () => this.measure());
   };
   private onVis = (): void => {
-    if (document.visibilityState === 'visible') this.kit.resumeIfNeeded();
+    // Coming back from another app the context is often left suspended; without
+    // this the transport looks alive but nothing sounds.
+    if (document.visibilityState === 'visible') {
+      this.kit.resumeIfNeeded();
+      if (this.state.playing) this.kit.session(true);
+    }
   };
   /** iOS needs a real gesture before any sound will come out. */
   private onFirstGesture = (): void => {
@@ -144,7 +151,8 @@ export class App extends Component<Record<string, never>, AppState> {
 
   constructor(props: Record<string, never>) {
     super(props);
-    const { lib, curId } = load();
+    const { lib, curId, restored } = load();
+    this.restored = restored;
     this.state = {
       view: 'edit',
       lib,
@@ -180,7 +188,9 @@ export class App extends Component<Record<string, never>, AppState> {
   }
 
   componentDidMount(): void {
-    save(this.state.lib, this.state.curId);
+    // Only persist the bundled demo. Writing on every mount meant a transient
+    // read failure would immediately overwrite the user's sheets with a seed.
+    if (!this.restored) save(this.state.lib, this.state.curId);
     this.measure();
     if (window.ResizeObserver) {
       this.ro = new ResizeObserver(() => this.measure());
@@ -365,7 +375,7 @@ export class App extends Component<Record<string, never>, AppState> {
       },
       () => {
         save(lib, this.state.curId);
-        if (this.state.playing) this.rebuild();
+        if (this.state.playing) this.rebuild(true);
       },
     );
   }
@@ -404,7 +414,19 @@ export class App extends Component<Record<string, never>, AppState> {
 
   /* ---------- transport ---------- */
 
-  rebuild(): void {
+  /**
+   * @param keepPosition rebuild in place during playback, preserving where the
+   * playhead is. Without it a tempo change kept the old `t0` while the period
+   * changed underneath, so the playhead jumped and the scheduler re-fired
+   * everything from the current index — the tempo appeared to run away.
+   */
+  rebuild(keepPosition = false): void {
+    const now = this.kit.time;
+    let frac = 0;
+    if (keepPosition && this.period > 0) {
+      const t = now - this.t0;
+      if (t > 0) frac = (t % this.period) / this.period;
+    }
     const p = this.proj();
     const parts = this.state.scope === 'song' ? p.parts : [this.curPart()];
     const T = buildTimeline(p, parts, this.state.speed, this.state.loop);
@@ -416,6 +438,13 @@ export class App extends Component<Record<string, never>, AppState> {
     // you are playing along to the loop.
     this.gap = 4 * T.spq;
     this.period = this.total;
+    if (keepPosition && this.TL.length) {
+      const at = frac * this.period;
+      this.pass = 0;
+      this.t0 = now - at;
+      const i = this.TL.findIndex((st) => st.t >= at);
+      this.idx = i < 0 ? 0 : i;
+    }
   }
 
   togglePlay = (): void => {
@@ -432,6 +461,7 @@ export class App extends Component<Record<string, never>, AppState> {
     // reports currentTime 0 — every event would be scheduled in the past and
     // dropped. Resume before reading the clock.
     await this.kit.unlock();
+    this.kit.session(true);
     const ac = this.kit.ac();
     this.rebuild();
     if (!this.TL.length) return;
@@ -450,6 +480,7 @@ export class App extends Component<Record<string, never>, AppState> {
     clearInterval(this.iv);
     cancelAnimationFrame(this.raf);
     this.kit.panic();
+    this.kit.session(false);
     this.wakeOff();
     if (this.state.playing || this.state.cur || this.state.count)
       this.setState({ playing: false, cur: null, count: 0 });

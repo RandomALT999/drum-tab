@@ -1,6 +1,7 @@
 import type { App } from '../App';
 import type { Bar } from '../model/types';
 import { ACCENT, SAFE_BOTTOM, softAccent } from '../config';
+import { SPEEDS } from '../notation/constants';
 import { buildBar } from '../notation/layout';
 import { Staff } from '../notation/Staff';
 
@@ -66,9 +67,29 @@ export function PlayMode({ app }: { app: App }) {
             whiteSpace: 'nowrap',
           }}
         >
-          {p.bpm} BPM · {speedLabel}
-          {loopOn ? ' · LOOP' : ''}
+          {p.bpm} BPM{loopOn ? ' · LOOP' : ''}
         </div>
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            const i = (SPEEDS.indexOf(st.speed) + 1) % SPEEDS.length;
+            app.setState({ speed: SPEEDS[i] }, () => {
+              if (app.state.playing) app.restart();
+            });
+          }}
+          aria-label="Playback speed"
+          style={{
+            height: 38,
+            padding: '0 12px',
+            borderRadius: 9,
+            border: '1px solid rgba(236,231,221,.18)',
+            font: '600 13px IBM Plex Mono,monospace',
+            color: st.speed === 1 ? 'rgba(236,231,221,.6)' : ACCENT,
+            flex: 'none',
+          }}
+        >
+          {speedLabel}
+        </button>
         <button
           onClick={(e) => {
             e.stopPropagation();

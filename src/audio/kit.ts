@@ -44,12 +44,6 @@ export class Kit {
    * switch from muting us, which is the other common cause of a silent iPhone.
    */
   async unlock(): Promise<void> {
-    const nav = navigator as Navigator & { audioSession?: { type: string } };
-    try {
-      if (nav.audioSession) nav.audioSession.type = 'playback';
-    } catch {
-      /* not supported */
-    }
     const ac = this.ac();
     if (ac.state !== 'running') {
       try {
@@ -70,6 +64,21 @@ export class Kit {
 
   get running(): boolean {
     return this.ctx?.state === 'running';
+  }
+
+  /**
+   * `playback` is what stops the hardware ringer switch muting us, but it also
+   * declares the tab a media app — which is what puts it in the Dynamic Island
+   * and ducks other audio. Hold it only while actually playing and drop back to
+   * `auto` on stop, so the indicator goes away between takes.
+   */
+  session(active: boolean): void {
+    const nav = navigator as Navigator & { audioSession?: { type: string } };
+    try {
+      if (nav.audioSession) nav.audioSession.type = active ? 'playback' : 'auto';
+    } catch {
+      /* not supported */
+    }
   }
 
   /** Audio-clock read with no side effects — safe to poll from rAF. */

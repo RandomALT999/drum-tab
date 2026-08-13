@@ -73,8 +73,12 @@ export const fitDur = (bar: Bar, s: number, want: NoteValue): NoteValue => {
  * Compound meters group by three eighths; triplet bars stay at one beat each
  * so every triplet keeps its own bracket.
  */
-export const beamGroup = (bar: Bar): number => {
+export const beamGroup = (bar: Bar, hasSixteenths = false): number => {
   if (isTriplet(bar)) return 1;
+  // Running eighths read better grouped by the half bar, but sixteenths are
+  // beamed a beat at a time — a double beam running across two beats hides
+  // where the beat falls, which is the whole point of the grouping.
+  if (hasSixteenths) return 1;
   if (bar.dv === 8) return bar.n % 3 === 0 ? 3 : 2;
   return 2;
 };
@@ -246,7 +250,12 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const grp = (list: Note[], up: boolean): void => {
     const dir = up ? 1 : -1;
     const tip = up ? UPEND : DNEND;
-    const span = beamGroup(bar);
+    // decided per stem-direction group: a sixteenth anywhere in this voice
+    // keeps the whole line beamed by the beat, so the two lines stay aligned
+    const span = beamGroup(
+      bar,
+      list.some((n) => n.d >= 16),
+    );
     for (let b = 0; b < bar.n; b += span) {
       const lo = b * bar.sub;
       const hi = Math.min(b + span, bar.n) * bar.sub;

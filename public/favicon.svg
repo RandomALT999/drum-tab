@@ -1,21 +1,21 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <rect width="512" height="512" rx="112" fill="#0d0d10"/>
   <!-- five-line percussion staff -->
-  <g stroke="#ece7dd" stroke-opacity="0.22" stroke-width="10" stroke-linecap="round">
-    <path d="M104 196h304"/>
-    <path d="M104 232h304"/>
-    <path d="M104 268h304"/>
-    <path d="M104 304h304"/>
-    <path d="M104 340h304"/>
+  <g stroke="#ece7dd" stroke-opacity="0.2" stroke-width="11" stroke-linecap="round">
+    <path d="M74 186h364"/>
+    <path d="M74 228h364"/>
+    <path d="M74 270h364"/>
+    <path d="M74 312h364"/>
+    <path d="M74 354h364"/>
   </g>
   <!-- two beamed eighths: snare in the third space, bass drum in the bottom space -->
-  <g fill="#F5AE4B" stroke="#F5AE4B">
-    <ellipse cx="180" cy="250" rx="30" ry="21" transform="rotate(-18 180 250)" stroke="none"/>
-    <ellipse cx="330" cy="322" rx="30" ry="21" transform="rotate(-18 330 322)" stroke="none"/>
-    <g stroke-width="14">
-      <path d="M209 252V158"/>
-      <path d="M359 324V158"/>
+  <g fill="#F5AE4B" stroke="#F5AE4B" stroke-linecap="round" stroke-linejoin="round">
+    <ellipse cx="158" cy="249" rx="38" ry="27" transform="rotate(-20 158 249)" stroke="none"/>
+    <ellipse cx="330" cy="333" rx="38" ry="27" transform="rotate(-20 330 333)" stroke="none"/>
+    <g stroke-width="17">
+      <path d="M194 244V146"/>
+      <path d="M366 328V146"/>
     </g>
-    <rect x="202" y="150" width="164" height="28" rx="3" stroke="none"/>
+    <rect x="185" y="128" width="190" height="34" rx="12" stroke="none"/>
   </g>
 </svg>
