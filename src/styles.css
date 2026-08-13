@@ -34,6 +34,9 @@ html,
 body {
   margin: 0;
   height: 100%;
+  /* Lock the document. Nothing here is ever meant to scroll — only panes are —
+     and a document that can scroll is what lets a rotation leave the UI offset. */
+  overflow: hidden;
   /* Any area the viewport does not cover is painted with the canvas colour,
      which propagates from <html>, not <body>. */
   background: #0d0d10;

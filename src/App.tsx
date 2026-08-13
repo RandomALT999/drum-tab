@@ -112,12 +112,22 @@ export class App extends Component<Record<string, never>, AppState> {
   private mq: MediaQueryList | undefined;
   private wl: WakeLockSentinel | null = null;
 
-  private onResize = (): void => {
-    // A rotation that briefly overflowed can leave the document scrolled, which
-    // reads as the whole UI sitting too high once it settles.
-    if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
-    this.measure();
+  /**
+   * iOS restores scroll and settles the viewport asynchronously after a
+   * rotation, so one immediate reset is not enough — the offset reappears a
+   * frame later and reads as the UI sitting off-position.
+   */
+  private settle = (): void => {
+    const reset = (): void => {
+      if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+      this.measure();
+    };
+    reset();
+    requestAnimationFrame(reset);
+    setTimeout(reset, 120);
+    setTimeout(reset, 400);
   };
+  private onResize = (): void => this.settle();
   private onKey = (e: KeyboardEvent): void => {
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -205,6 +215,8 @@ export class App extends Component<Record<string, never>, AppState> {
       if (this.pane) this.ro.observe(this.pane);
     }
     window.addEventListener('resize', this.onResize);
+    // iOS fires this separately, and sometimes before the viewport has settled
+    window.addEventListener('orientationchange', this.onResize);
     window.addEventListener('keydown', this.onKey);
     document.addEventListener('visibilitychange', this.onVis);
     // Noteheads are font glyphs; re-render once the music font is ready so the
@@ -236,6 +248,7 @@ export class App extends Component<Record<string, never>, AppState> {
   componentWillUnmount(): void {
     this.stop();
     window.removeEventListener('resize', this.onResize);
+    window.removeEventListener('orientationchange', this.onResize);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pointerdown', this.onFirstGesture);
     window.removeEventListener('touchend', this.onFirstGesture);
