@@ -69,18 +69,31 @@ textarea {
    dvh mid-rotation — makes the *document* scrollable, and rotating back leaves
    it scrolled so the whole UI sits high. Fixed positioning removes that
    failure mode; dvh keeps it honest when iOS Safari's toolbar auto-hides. */
+/* The mount point has to carry the height through, or the shell's 100% has
+   nothing to resolve against. */
+#root {
+  height: 100%;
+}
+
+/* Deliberately NOT position:fixed. iOS places a fixed element against the
+   *layout* viewport, so when a rotation leaves the visual viewport offset the
+   whole shell appears shifted — and scrollTo(0,0) cannot clear that, because
+   the document was never scrolled. Laid out normally inside a body that is
+   locked to the web view, the shell simply is the web view and has nothing to
+   be offset against. */
 .app-root {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* In a browser tab the toolbars auto-hide, so track the dynamic viewport there
+   instead. Standalone has no toolbars and 100% is already exact. */
+html:not([data-standalone]) .app-root {
   height: 100vh;
   height: 100dvh;
-  /* html/body are locked to the web view, so this clamps the shell to it even
-     if dvh reports the previous orientation for a frame after rotating —
-     the overshoot is what shifted everything. */
   max-height: 100%;
-  overflow: hidden;
 }
 
 /* Screens fill the shell exactly. */

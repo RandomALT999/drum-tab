@@ -217,6 +217,10 @@ export class App extends Component<Record<string, never>, AppState> {
     window.addEventListener('resize', this.onResize);
     // iOS fires this separately, and sometimes before the viewport has settled
     window.addEventListener('orientationchange', this.onResize);
+    // The visual viewport is what actually moves on iOS; the window resize
+    // event does not always fire when it settles after a rotation.
+    window.visualViewport?.addEventListener('resize', this.onResize);
+    window.visualViewport?.addEventListener('scroll', this.onResize);
     window.addEventListener('keydown', this.onKey);
     document.addEventListener('visibilitychange', this.onVis);
     // Noteheads are font glyphs; re-render once the music font is ready so the
@@ -249,6 +253,8 @@ export class App extends Component<Record<string, never>, AppState> {
     this.stop();
     window.removeEventListener('resize', this.onResize);
     window.removeEventListener('orientationchange', this.onResize);
+    window.visualViewport?.removeEventListener('resize', this.onResize);
+    window.visualViewport?.removeEventListener('scroll', this.onResize);
     window.removeEventListener('keydown', this.onKey);
     window.removeEventListener('pointerdown', this.onFirstGesture);
     window.removeEventListener('touchend', this.onFirstGesture);
