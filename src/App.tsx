@@ -112,7 +112,12 @@ export class App extends Component<Record<string, never>, AppState> {
   private mq: MediaQueryList | undefined;
   private wl: WakeLockSentinel | null = null;
 
-  private onResize = (): void => this.measure();
+  private onResize = (): void => {
+    // A rotation that briefly overflowed can leave the document scrolled, which
+    // reads as the whole UI sitting too high once it settles.
+    if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+    this.measure();
+  };
   private onKey = (e: KeyboardEvent): void => {
     const tag = (e.target as HTMLElement | null)?.tagName;
     if (tag === 'INPUT' || tag === 'TEXTAREA') return;
@@ -1508,12 +1513,11 @@ export class App extends Component<Record<string, never>, AppState> {
     const sheet = this.buildSheet();
     return (
       <div
+        className="app-root"
         style={{
-          minHeight: '100dvh',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          overflowX: 'hidden',
           // in landscape the notch sits on one side, not the top
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)',

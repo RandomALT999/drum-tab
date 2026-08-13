@@ -61,13 +61,32 @@ textarea {
   box-sizing: border-box;
 }
 
-/* Full-height screens. 100vh is the fallback; 100dvh keeps the layout correct
-   when iOS Safari's bottom toolbar auto-hides. */
-.screen {
+/* The app shell is pinned to the viewport rather than merely as tall as it.
+   Left to flow, any overshoot — a landscape band a pixel too tall, or a stale
+   dvh mid-rotation — makes the *document* scrollable, and rotating back leaves
+   it scrolled so the whole UI sits high. Fixed positioning removes that
+   failure mode; dvh keeps it honest when iOS Safari's toolbar auto-hides. */
+.app-root {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
   height: 100vh;
   height: 100dvh;
-  max-height: 100vh;
-  max-height: 100dvh;
+  overflow: hidden;
+}
+
+/* Screens fill the shell exactly. */
+.screen {
+  height: 100%;
+  max-height: 100%;
+}
+
+/* The library is the one screen taller than the shell, so it scrolls itself. */
+.scroll-screen {
+  height: 100%;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 a {
   color: oklch(0.8 0.14 72);

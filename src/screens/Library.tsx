@@ -17,6 +17,7 @@ export function Library({ app }: { app: App }) {
   const { lib } = app.state;
   return (
     <div
+      className="scroll-screen"
       style={{
         width: '100%',
         maxWidth: 560,
