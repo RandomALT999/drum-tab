@@ -221,13 +221,11 @@ export class App extends Component<Record<string, never>, AppState> {
   componentDidUpdate(_p: Record<string, never>, prev: AppState): void {
     // Switching screens or toggling the key remounts the pane, so the measured
     // box belongs to the screen we just left. Re-measure before it is used.
-    if (prev.view !== this.state.view || prev.labels !== this.state.labels) {
-      if (prev.view !== this.state.view) {
-        this.pane = null;
-        this.playPane = null;
-      }
+    // Re-measure only. Clearing the refs here ran *after* React had already
+    // attached the incoming screen's, so the new pane was never measured and
+    // its bars fell back to default sizing.
+    if (prev.view !== this.state.view || prev.labels !== this.state.labels)
       requestAnimationFrame(() => this.measure());
-    }
   }
 
   componentWillUnmount(): void {
@@ -669,7 +667,6 @@ export class App extends Component<Record<string, never>, AppState> {
       if (Math.abs(sc.scrollLeft - left) > 0.5) sc.scrollLeft = left;
       return;
     }
-    if (this.state.view !== 'play') return;
     const max = sc.scrollHeight - sc.clientHeight;
     const top = Math.max(0, Math.min(max, el.offsetTop - sc.clientHeight * 0.3));
     if (Math.abs(sc.scrollTop - top) > 0.5) sc.scrollTop = top;

@@ -236,6 +236,10 @@ export function Editor({ app }: { app: App }) {
           return (
             <div
               key={bar.id}
+              // auto-scroll needs to find this bar's box while playing
+              ref={(el) => {
+                if (el) app.barEls[bar.id] = el;
+              }}
               style={{
                 width: barW,
                 flex: 'none',
