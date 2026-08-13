@@ -95,6 +95,9 @@ export function Palette({ app }: { app: App }) {
         flex: 'none',
         padding: compact ? '5px 12px 5px' : '8px 12px 10px',
         paddingBottom: SAFE_BOTTOM,
+        display: compact ? 'flex' : undefined,
+        alignItems: compact ? 'center' : undefined,
+        gap: compact ? 10 : undefined,
       }}
     >
       <div
@@ -102,9 +105,11 @@ export function Palette({ app }: { app: App }) {
           display: 'flex',
           alignItems: 'center',
           gap: 6,
-          padding: '0 2px 7px',
-          overflowX: 'auto',
-          overflowY: 'hidden',
+          // landscape has width to spare and no height to spare, so the context
+          // chips sit beside the buttons instead of above them
+          padding: compact ? '0' : '0 2px 7px',
+          order: compact ? 2 : 0,
+          flex: compact ? 'none' : undefined,
         }}
       >
         <span
@@ -114,6 +119,7 @@ export function Palette({ app }: { app: App }) {
             color: tgtFg,
             whiteSpace: 'nowrap',
             flex: 'none',
+            display: compact ? 'none' : undefined,
           }}
         >
           {tgtLabel}
@@ -186,7 +192,9 @@ export function Palette({ app }: { app: App }) {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: 5 }}>
+      <div
+        style={{ display: 'flex', gap: 5, flex: compact ? '1 1 auto' : undefined, minWidth: 0 }}
+      >
         {cell(
           dv === 4,
           '1/4',

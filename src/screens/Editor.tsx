@@ -136,7 +136,16 @@ export function Editor({ app }: { app: App }) {
         </button>
       </div>
 
-      <Transport app={app} />
+      {compact ? (
+        <div style={{ display: 'flex', alignItems: 'center', flex: 'none' }}>
+          <Transport app={app} />
+          <div style={{ flex: '1 1 auto', minWidth: 0 }}>
+            <PartsStrip app={app} />
+          </div>
+        </div>
+      ) : (
+        <Transport app={app} />
+      )}
 
       {st.met && (
         <div
@@ -182,7 +191,7 @@ export function Editor({ app }: { app: App }) {
         </div>
       )}
 
-      <PartsStrip app={app} />
+      {!compact && <PartsStrip app={app} />}
 
       {/* notation pane — the only thing on this screen that scrolls */}
       <div
@@ -192,12 +201,13 @@ export function Editor({ app }: { app: App }) {
           minHeight: 0,
           background: '#111116',
           padding: compact ? '6px 10px 4px' : '10px 12px 6px',
-          overflowY: 'auto',
-          overflowX: 'hidden',
+          overflowY: compact ? 'hidden' : 'auto',
+          overflowX: compact ? 'auto' : 'hidden',
           display: 'flex',
-          flexWrap: 'wrap',
+          flexWrap: compact ? 'nowrap' : 'wrap',
           alignContent: 'flex-start',
-          gap: compact ? '6px 12px' : '8px 14px',
+          gap: compact ? '0 12px' : '8px 14px',
+          scrollSnapType: compact ? 'x proximity' : undefined,
         }}
       >
         {part.bars.map((bar, i) => {
@@ -215,7 +225,14 @@ export function Editor({ app }: { app: App }) {
           });
           const selected = st.bar === i;
           return (
-            <div key={bar.id} style={{ width: barW, flex: 'none' }}>
+            <div
+              key={bar.id}
+              style={{
+                width: barW,
+                flex: 'none',
+                scrollSnapAlign: compact ? 'start' : undefined,
+              }}
+            >
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 2 }}>
                 <button
                   onClick={() => app.setState({ bar: i })}

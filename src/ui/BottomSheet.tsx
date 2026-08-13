@@ -18,7 +18,7 @@ export interface SheetItem {
 export interface SheetSpec {
   title: string;
   close: () => void;
-  input?: { val: string; onChange: (v: string) => void };
+  input?: { val: string; onChange: (v: string) => void; numeric?: boolean };
   items: SheetItem[];
 }
 
@@ -62,6 +62,7 @@ export function BottomSheet({ spec }: { spec: SheetSpec }) {
         {spec.input && (
           <input
             value={spec.input.val}
+            inputMode={spec.input.numeric ? 'numeric' : undefined}
             onChange={(e) => spec.input!.onChange(e.target.value)}
             style={{
               width: '100%',

@@ -100,4 +100,6 @@ export type SheetState =
   | { k: 'part'; name?: string }
   | { k: 'addbar' }
   /** pick the cymbal feel a new part, sheet or bar starts on */
-  | { k: 'feel'; target: 'part' | 'project' | 'bar'; at?: number };
+  | { k: 'feel'; target: 'part' | 'project' | 'bar'; at?: number }
+  /** tempo: type a number or tap it in */
+  | { k: 'tempo' };

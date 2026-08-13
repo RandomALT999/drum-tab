@@ -113,6 +113,23 @@ export function Library({ app }: { app: App }) {
               </div>
             </div>
             <button
+              onClick={() => void app.shareSheet(p)}
+              aria-label="Share sheet"
+              style={{
+                width: 42,
+                height: 42,
+                borderRadius: 10,
+                background: '#22222a',
+                display: 'grid',
+                placeItems: 'center',
+                font: '500 15px IBM Plex Mono,monospace',
+                color: 'rgba(236,231,221,.6)',
+                flex: 'none',
+              }}
+            >
+              ↗
+            </button>
+            <button
               onClick={() => app.dupProject(p)}
               aria-label="Duplicate sheet"
               style={{

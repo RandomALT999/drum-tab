@@ -1,4 +1,3 @@
-import { useEffect, useRef, useState } from 'react';
 import type { App } from '../App';
 import { ACCENT, softAccent } from '../config';
 import { SPEEDS } from '../notation/constants';
@@ -6,18 +5,6 @@ import { SPEEDS } from '../notation/constants';
 export function Transport({ app }: { app: App }) {
   const st = app.state;
   const p = app.proj();
-  // tap the readout to type a tempo instead of stepping to it
-  const [typing, setTyping] = useState<string | null>(null);
-  const field = useRef<HTMLInputElement>(null);
-  useEffect(() => {
-    if (typing !== null) field.current?.select();
-  }, [typing]);
-  const commit = (raw: string | null): void => {
-    const v = Math.round(Number(raw));
-    if (raw !== null && raw !== '' && Number.isFinite(v))
-      app.edit((pp) => void (pp.bpm = Math.max(30, Math.min(300, v))));
-    setTyping(null);
-  };
   const soft = softAccent(ACCENT);
   const H = st.compact ? 42 : 50;
   const fs = st.compact ? 10 : 10.5;
@@ -109,38 +96,12 @@ export function Transport({ app }: { app: App }) {
         >
           −
         </button>
-        <div style={{ textAlign: 'center', minWidth: 44 }}>
-          {typing === null ? (
-            <div
-              onClick={() => setTyping(String(p.bpm))}
-              style={{ font: '500 20px/1 IBM Plex Mono,monospace', cursor: 'pointer' }}
-            >
-              {p.bpm}
-            </div>
-          ) : (
-            <input
-              ref={field}
-              value={typing}
-              inputMode="numeric"
-              autoFocus
-              onChange={(e) => setTyping(e.target.value.replace(/[^0-9]/g, '').slice(0, 3))}
-              onBlur={() => commit(typing)}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') commit(typing);
-                if (e.key === 'Escape') setTyping(null);
-              }}
-              style={{
-                width: 44,
-                background: 'none',
-                border: 0,
-                outline: 'none',
-                textAlign: 'center',
-                font: '500 20px/1 IBM Plex Mono,monospace',
-                color: ACCENT,
-                padding: 0,
-              }}
-            />
-          )}
+        <button
+          onClick={() => app.setState({ sheet: { k: 'tempo' } })}
+          aria-label="Set tempo"
+          style={{ textAlign: 'center', minWidth: 44, height: H }}
+        >
+          <div style={{ font: '500 20px/1 IBM Plex Mono,monospace' }}>{p.bpm}</div>
           <div
             style={{
               font: '400 8px/1.5 IBM Plex Mono,monospace',
@@ -150,7 +111,7 @@ export function Transport({ app }: { app: App }) {
           >
             BPM
           </div>
-        </div>
+        </button>
         <button
           onClick={() =>
             app.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 1)), undefined, 'bpm')

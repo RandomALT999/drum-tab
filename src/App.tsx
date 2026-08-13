@@ -17,6 +17,7 @@ import { RES, clone, newProj, uid } from './model/factory';
 import { FEELS, feelBar } from './model/feels';
 import type { Feel } from './model/feels';
 import { load, save } from './model/storage';
+import { decodeSheet, encodeSheet, shareUrl } from './model/share';
 import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
@@ -84,6 +85,8 @@ export class App extends Component<Record<string, never>, AppState> {
   private history = new History();
   private g: Gesture = {};
   private lastTap: { id: string; t: number } | null = null;
+  /** timestamps of recent tempo taps */
+  private taps: number[] = [];
   /** whether the library came from storage rather than the bundled demo */
   private restored = false;
 
@@ -212,6 +215,7 @@ export class App extends Component<Record<string, never>, AppState> {
     window.addEventListener('pointerdown', this.onFirstGesture, { passive: true });
     window.addEventListener('touchend', this.onFirstGesture, { passive: true });
     onUpdateReady(() => this.setState({ swUpdate: true }));
+    void this.openShared();
   }
 
   componentWillUnmount(): void {
@@ -299,6 +303,14 @@ export class App extends Component<Record<string, never>, AppState> {
     const gap = play ? 16 : this.state.compact ? 12 : 14;
     // room for the bar's own caption row above the staff
     const head = play ? 24 : 34;
+    // Landscape editing scrolls sideways through bars, so a bar is sized to
+    // fill the pane's height and gets as long as that allows — rather than
+    // being squeezed narrow to fit several across.
+    if (this.state.compact && !play) {
+      // head + the pane's own padding, so the block clears the pane exactly
+      const cap = Math.max(90, h - head - 10);
+      return { width: Math.round(cap * aspect) + 'px', cap: cap + 'px' };
+    }
     let bw = w;
     for (let n = 1; n <= 4; n++) {
       bw = (w - gap * (n - 1)) / n;
@@ -391,6 +403,74 @@ export class App extends Component<Record<string, never>, AppState> {
     if (!next) return;
     this.restoreProject(next);
     this.flash('REDO');
+  }
+
+  /**
+   * Tempo from tapping in time. Uses the median of the recent gaps rather than
+   * the mean, so one clumsy tap doesn't drag the whole reading; gaps longer
+   * than two seconds start a fresh count.
+   */
+  tapTempo(): void {
+    const now = performance.now();
+    if (this.taps.length && now - this.taps[this.taps.length - 1] > 2000) this.taps = [];
+    this.taps.push(now);
+    if (this.taps.length > 6) this.taps.shift();
+    if (this.taps.length < 2) {
+      this.flash('KEEP TAPPING');
+      return;
+    }
+    const gaps: number[] = [];
+    for (let i = 1; i < this.taps.length; i++) gaps.push(this.taps[i] - this.taps[i - 1]);
+    gaps.sort((a, b) => a - b);
+    const mid = gaps[Math.floor(gaps.length / 2)];
+    const bpm = Math.max(30, Math.min(300, Math.round(60000 / mid)));
+    this.edit((pp) => void (pp.bpm = bpm), undefined, 'bpm');
+  }
+
+  /** Pack the current sheet into a link and hand it to the share sheet. */
+  shareSheet = async (p: Project = this.proj()): Promise<void> => {
+    const payload = await encodeSheet(p);
+    const url = shareUrl(payload);
+    if (url.length > 8000) {
+      this.flash('SHEET TOO BIG TO LINK');
+      return;
+    }
+    try {
+      const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+      if (nav.share) {
+        await nav.share({ title: p.title, url });
+        return;
+      }
+    } catch {
+      /* dismissed, or unavailable — fall back to the clipboard */
+    }
+    try {
+      await navigator.clipboard.writeText(url);
+      this.flash('LINK COPIED');
+    } catch {
+      this.flash('COULD NOT COPY LINK');
+    }
+  };
+
+  /** A #s=… fragment means someone opened a shared link. */
+  private async openShared(): Promise<void> {
+    const m = /^#s=(.+)$/.exec(location.hash);
+    if (!m) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    const p = await decodeSheet(m[1]);
+    if (!p) {
+      this.flash('LINK NOT READABLE');
+      return;
+    }
+    const lib = [p, ...this.state.lib];
+    this.history.clear(p.id);
+    this.setState(
+      { lib, curId: p.id, view: 'edit', part: 0, bar: 0, sel: null, loop: null },
+      () => {
+        save(lib, p.id);
+        this.flash('SHEET ADDED');
+      },
+    );
   }
 
   flash(t: string): void {
@@ -1148,6 +1228,52 @@ export class App extends Component<Record<string, never>, AppState> {
               this.setState({ part: 0, bar: 0, sel: null });
               close();
             },
+          },
+        ],
+      };
+    }
+
+    if (S.k === 'tempo') {
+      return {
+        title: 'TEMPO · ' + p.bpm + ' BPM',
+        close,
+        input: {
+          val: String(p.bpm),
+          numeric: true,
+          onChange: (v: string) => {
+            const n = Math.round(Number(v.replace(/[^0-9]/g, '')));
+            if (Number.isFinite(n) && n > 0)
+              this.edit(
+                (pp) => void (pp.bpm = Math.max(30, Math.min(300, n))),
+                undefined,
+                'bpm',
+              );
+          },
+        },
+        items: [
+          {
+            g: '●',
+            t: 'TAP TEMPO',
+            ...mono,
+            fs: '15px',
+            bg: this.acc,
+            fg: '#0d0d10',
+            min: '100%',
+            act: () => this.tapTempo(),
+          },
+          {
+            g: '−',
+            t: '5 SLOWER',
+            ...mono,
+            act: () =>
+              this.edit((pp) => void (pp.bpm = Math.max(30, pp.bpm - 5)), undefined, 'bpm'),
+          },
+          {
+            g: '+',
+            t: '5 FASTER',
+            ...mono,
+            act: () =>
+              this.edit((pp) => void (pp.bpm = Math.min(300, pp.bpm + 5)), undefined, 'bpm'),
           },
         ],
       };
