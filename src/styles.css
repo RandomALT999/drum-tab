@@ -76,6 +76,10 @@ textarea {
   right: 0;
   height: 100vh;
   height: 100dvh;
+  /* html/body are locked to the web view, so this clamps the shell to it even
+     if dvh reports the previous orientation for a frame after rotating —
+     the overshoot is what shifted everything. */
+  max-height: 100%;
   overflow: hidden;
 }
 

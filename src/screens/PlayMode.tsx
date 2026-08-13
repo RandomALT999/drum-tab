@@ -32,7 +32,7 @@ export function PlayMode({ app }: { app: App }) {
       onClick={app.togglePlay}
       style={{
         width: '100%',
-        background: '#000',
+        background: '#0d0d10',
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
