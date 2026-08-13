@@ -10,7 +10,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt',
-      includeAssets: ['apple-touch-icon.png', 'favicon.svg'],
+      includeAssets: ['apple-touch-icon-bone.png', 'favicon-bone.svg'],
       workbox: {
         // Fonts are large and immutable; make sure they land in the precache so
         // noteheads never fall back to tofu when offline.
@@ -18,6 +18,10 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {
+        // Icon filenames carry the variant. iOS reads the icon once, at Add to
+        // Home Screen, and both Safari's HTTP cache and the installed service
+        // worker will happily serve the previous bytes from the same URL — so a
+        // new icon needs a new name, not just new content.
         id: BASE,
         name: 'Drum Tab',
         short_name: 'Drum Tab',
@@ -31,10 +35,10 @@ export default defineConfig({
         theme_color: '#0d0d10',
         categories: ['music', 'productivity'],
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-bone-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-bone-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
           {
-            src: 'icon-maskable-512.png',
+            src: 'icon-bone-maskable-512.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable',
