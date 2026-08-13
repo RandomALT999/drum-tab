@@ -12,6 +12,7 @@ import {
   NDX,
   NDY,
   NOTE0,
+  NOTE0_TIGHT,
   ODX,
   ODY,
   R16DX,
@@ -37,10 +38,24 @@ import {
  * glyphs up — which is what a taller viewBox would have done.
  */
 export const BR_DEFAULT = BR;
-export const spanFor = (br: number): number => br - 12 - NOTE0;
-export const beatW = (bar: Bar, br: number = BR): number => spanFor(br) / bar.n;
-export const slotW = (bar: Bar, br: number = BR): number => beatW(bar, br) / bar.sub;
-export const xOf = (bar: Bar, s: number, br: number = BR): number => NOTE0 + s * slotW(bar, br);
+export const spanFor = (br: number, n0: number = NOTE0): number => br - 12 - n0;
+export const beatW = (bar: Bar, br: number = BR, n0: number = NOTE0): number =>
+  spanFor(br, n0) / bar.n;
+export const slotW = (bar: Bar, br: number = BR, n0: number = NOTE0): number =>
+  beatW(bar, br, n0) / bar.sub;
+export const xOf = (bar: Bar, s: number, br: number = BR, n0: number = NOTE0): number =>
+  n0 + s * slotW(bar, br, n0);
+
+/**
+ * Whether `bar` draws its own time signature — only the first bar, and any
+ * whose meter differs from the one before it. When it doesn't, the notes start
+ * further left and take the width the signature would have used.
+ */
+export const showsTS = (bar: Bar, prev: Bar | null, gi: number): boolean =>
+  gi === 0 || !prev || prev.n !== bar.n || prev.dv !== bar.dv;
+
+export const note0For = (bar: Bar, prev: Bar | null, gi: number): number =>
+  showsTS(bar, prev, gi) ? NOTE0 : NOTE0_TIGHT;
 
 /**
  * How many grid slots one note of value `d` occupies.
@@ -180,8 +195,10 @@ interface Col {
 export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const res = RES(bar);
   const br = ctx.br;
-  const bw = beatW(bar, br);
-  const sw = slotW(bar, br);
+  const showTS = showsTS(bar, ctx.prev, ctx.gi);
+  const n0 = showTS ? NOTE0 : NOTE0_TIGHT;
+  const bw = beatW(bar, br, n0);
+  const sw = slotW(bar, br, n0);
   const { hot, acc, softAcc } = ctx;
   const drag = ctx.drag && ctx.drag.barId === bar.id ? ctx.drag : null;
   const dragId = drag ? drag.noteId : null;
@@ -213,7 +230,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     .forEach((n) => {
       const v = VI[n.v];
       const y = yOf(v.st);
-      const x = xOf(bar, n.s, br);
+      const x = xOf(bar, n.s, br, n0);
       const c = n.s === hot ? acc : IV;
       const op = n.a === 'ghost' ? 0.6 : 1;
       if (v.hd === 'o') oh.push({ x: r1(x - ODX), y: r1(y + ODY), c, op });
@@ -245,7 +262,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   live
     .filter((n) => n.rest)
     .forEach((n) => {
-      const x = xOf(bar, n.s, br);
+      const x = xOf(bar, n.s, br, n0);
       const cy = VI[n.v].up ? 84 : 116;
       const c = n.s === hot ? acc : 'rgba(236,231,221,.72)';
       if (n.d === 4) r4.push({ x: r1(x - R4DX), y: r1(cy + R4DY), c });
@@ -256,7 +273,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
 
   if (drag) {
     const v = VI[drag.v];
-    const x = xOf(bar, drag.s, br);
+    const x = xOf(bar, drag.s, br, n0);
     const y = yOf(v.st);
     if (v.hd === 'n') gn.push({ x: r1(x - NDX), y: r1(y + NDY) });
     else gx.push({ x: r1(x - XDX), y: r1(y + XDY) });
@@ -282,7 +299,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       const cols: Col[] = slots.map((s) => {
         const ns = inBeat.filter((n) => n.s === s);
         const ys = ns.map((n) => yOf(VI[n.v].st));
-        const x = xOf(bar, s, br);
+        const x = xOf(bar, s, br, n0);
         return {
           s,
           sx: r1(up ? x + SDX : x - SDX),
@@ -362,7 +379,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
                   : slotW(bar)
                 : next
                   ? next.sx - c.sx
-                  : slotW(bar, br);
+                  : slotW(bar, br, n0);
               const w = Math.min(STUB, Math.abs(span) * 0.5);
               beams.push({
                 x: r1(left ? c.sx - 0.9 - w : c.sx - 0.9),
@@ -416,7 +433,8 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     false,
   );
 
-  const hl = hot >= 0 ? [{ x: r1(xOf(bar, hot, br) - sw / 2), w: r1(sw), fill: softAcc }] : [];
+  const hl =
+    hot >= 0 ? [{ x: r1(xOf(bar, hot, br, n0) - sw / 2), w: r1(sw), fill: softAcc }] : [];
 
   const L = ctx.loop;
   const loop: { d: string }[] = [];
@@ -424,22 +442,20 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     const inA = L.a.barId === bar.id;
     const inB = !!L.b && L.b.barId === bar.id;
     if (inA || inB) {
-      const xa = inA ? r1(xOf(bar, L.a.s, br)) : BL + 4;
-      const xb = inB && L.b ? r1(xOf(bar, L.b.s, br)) : br - 4;
+      const xa = inA ? r1(xOf(bar, L.a.s, br, n0)) : BL + 4;
+      const xb = inB && L.b ? r1(xOf(bar, L.b.s, br, n0)) : br - 4;
       loop.push({
         d: 'M' + xa + ' 6v6M' + xb + ' 6v6M' + Math.min(xa, xb) + ' 6H' + Math.max(xa, xb),
       });
     }
   }
 
-  const showTS = ctx.gi === 0 || !ctx.prev || ctx.prev.n !== bar.n || ctx.prev.dv !== bar.dv;
-
   const beats: BeatNum[] = [];
   if (ctx.showBeats && !ctx.play) {
     for (let i = 1; i <= bar.n; i++) {
       beats.push({
         n: String(i),
-        x: r1(NOTE0 + (i - 1) * bw),
+        x: r1(n0 + (i - 1) * bw),
         fill: hot >= 0 && Math.floor(hot / bar.sub) === i - 1 ? acc : 'rgba(236,231,221,.3)',
       });
     }

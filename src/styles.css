@@ -147,13 +147,6 @@ input[type='range']::-moz-range-thumb {
   touch-action: none;
 }
 
-/* Landscape gives one bar the whole screen, so the staff covers nearly every
-   pixel — it has to pass horizontal swipes through or the chart cannot be
-   scrolled by hand at all. Vertical drags still move notes between voices. */
-.staff.pannable {
-  touch-action: pan-x;
-}
-
 /* Every part of a scroller should answer to a swipe, including the empty space
    past the last bar. */
 .pane {

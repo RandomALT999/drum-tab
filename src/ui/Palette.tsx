@@ -126,6 +126,32 @@ export function Palette({ app }: { app: App }) {
         </span>
         <div style={{ flex: 1, minWidth: 4 }} />
 
+        {compact && (
+          <>
+            <button
+              onClick={() => app.stepBar(-1)}
+              aria-label="Previous bar"
+              style={{
+                ...smallChip('#1c1c22', 'rgba(236,231,221,.6)'),
+                padding: '0 11px',
+                fontSize: 13,
+              }}
+            >
+              ‹
+            </button>
+            <button
+              onClick={() => app.stepBar(1)}
+              aria-label="Next bar"
+              style={{
+                ...smallChip('#1c1c22', 'rgba(236,231,221,.6)'),
+                padding: '0 11px',
+                fontSize: 13,
+              }}
+            >
+              ›
+            </button>
+          </>
+        )}
         <button
           onClick={() => app.undo()}
           disabled={!st.canUndo}

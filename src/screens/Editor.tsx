@@ -293,7 +293,6 @@ export function Editor({ app }: { app: App }) {
                 </button>
               </div>
               <Staff
-                pannable={compact}
                 br={app.br()}
                 b={render}
                 vb={vb}

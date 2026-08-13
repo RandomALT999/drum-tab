@@ -43,6 +43,12 @@ export const TOP = 60;
 export const BL = 66;
 export const BR = 426;
 export const NOTE0 = 134;
+/**
+ * First note slot when no time signature is drawn — a bar whose meter matches
+ * the one before it. The clef's ink ends at ~80.5, so notes can start here and
+ * reclaim the width the signature would have taken.
+ */
+export const NOTE0_TIGHT = 100;
 export const SPAN = 280;
 export const VBW = 440;
 export const VBH = 172;

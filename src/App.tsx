@@ -22,8 +22,8 @@ import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
-import { NOTE0, SIGS, V, VBH, VI, yOf } from './notation/constants';
-import { BR_DEFAULT, canPlace, slotW, slotsFor, xOf } from './notation/layout';
+import { SIGS, V, VBH, VI, yOf } from './notation/constants';
+import { BR_DEFAULT, canPlace, note0For, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
@@ -685,6 +685,22 @@ export class App extends Component<Record<string, never>, AppState> {
       /* unsupported or denied — degrade silently */
     }
   }
+  /**
+   * Step the notation pane one bar left or right. Landscape shows one bar at a
+   * time and the staff keeps its drag gestures, so this is how you move
+   * between bars there without a swipe.
+   */
+  stepBar = (dir: 1 | -1): void => {
+    const sc = this.pane;
+    if (!sc) return;
+    const w = sc.clientWidth;
+    const max = sc.scrollWidth - w;
+    sc.scrollTo({
+      left: Math.max(0, Math.min(max, sc.scrollLeft + dir * w)),
+      behavior: 'smooth',
+    });
+  };
+
   /** Play mode owns the wake lock — request on entry, release on exit. */
   enterPlayWake = (): void => void this.wakeOn();
   exitPlayWake = (): void => this.wakeOff();
@@ -762,6 +778,17 @@ export class App extends Component<Record<string, never>, AppState> {
     return `${x} ${top} ${this.br(play) + 14 - x} ${h}`;
   }
 
+  /**
+   * The note origin for a bar, matching what the renderer used. Gestures only
+   * ever reach the current part, so its own ordering decides whether the bar
+   * draws a time signature — and therefore where its first slot sits.
+   */
+  private note0(bar: Bar): number {
+    const bars = this.curPart().bars;
+    const i = bars.findIndex((b) => b.id === bar.id);
+    return note0For(bar, i > 0 ? bars[i - 1] : null, Math.max(i, 0));
+  }
+
   private nearVoice(uy: number): Voice {
     let best = V[0];
     let bd = 1e9;
@@ -776,11 +803,12 @@ export class App extends Component<Record<string, never>, AppState> {
   }
 
   private hitNote(bar: Bar, ux: number, uy: number) {
-    const sw = slotW(bar, this.br());
+    const n0 = this.note0(bar);
+    const sw = slotW(bar, this.br(), n0);
     let best: import('./model/types').Note | null = null;
     let bd = 1e9;
     bar.notes.forEach((n) => {
-      const dx = xOf(bar, n.s, this.br()) - ux;
+      const dx = xOf(bar, n.s, this.br(), n0) - ux;
       const dy = yOf(VI[n.v].st) - uy;
       const d = Math.hypot(dx * 0.8, dy);
       if (Math.abs(dx) < Math.max(sw * 0.6, 9) && Math.abs(dy) < 9 && d < bd) {
@@ -824,7 +852,8 @@ export class App extends Component<Record<string, never>, AppState> {
    */
   private slotAt(bar: Bar, ux: number, d: NoteValue = this.state.dur): number {
     const step = slotsFor(bar, d);
-    const raw = (ux - NOTE0) / slotW(bar, this.br());
+    const n0 = this.note0(bar);
+    const raw = (ux - n0) / slotW(bar, this.br(), n0);
     const snapped = Math.round(raw / step) * step;
     return Math.max(0, Math.min(RES(bar) - step, snapped));
   }
@@ -994,7 +1023,7 @@ export class App extends Component<Record<string, never>, AppState> {
 
     if (!g.note) {
       // Outside the note field — clear the selection instead of placing.
-      if ((g.ux ?? 0) < NOTE0 - 16 || (g.uy ?? 0) < 28 || (g.uy ?? 0) > 132) {
+      if ((g.ux ?? 0) < this.note0(bar) - 16 || (g.uy ?? 0) < 28 || (g.uy ?? 0) > 132) {
         this.setState({ sel: null });
         return;
       }
