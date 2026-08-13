@@ -21,7 +21,7 @@ export function Transport({ app }: { app: App }) {
     font: `600 ${fs}px IBM Plex Mono,monospace`,
     letterSpacing: '.08em',
     whiteSpace: 'nowrap',
-    flex: 'none',
+    flex: st.compact ? 'none' : '1 1 auto',
     background: bg,
     color,
   });
@@ -45,7 +45,7 @@ export function Transport({ app }: { app: App }) {
         borderBottom: st.compact ? 'none' : '1px solid rgba(236,231,221,.12)',
         // wrap rather than scroll — reaching a control must never need a swipe
         flexWrap: 'wrap',
-        flex: 'none',
+        flex: st.compact ? 'none' : '1 1 auto',
       }}
     >
       <button

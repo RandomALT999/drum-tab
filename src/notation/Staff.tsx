@@ -23,6 +23,8 @@ export interface StaffProps {
   maxHeight: string;
   /** right edge of the staff in user units */
   br: number;
+  /** landscape: let horizontal swipes scroll past the bar */
+  pannable?: boolean;
   /** Play mode: heavier strokes, no beat numbers, no selection ring */
   play?: boolean;
   onPointerDown?: (e: RPointerEvent<SVGSVGElement>) => void;
@@ -39,6 +41,7 @@ export function Staff({
   labels,
   maxHeight,
   br,
+  pannable = false,
   play = false,
   onPointerDown,
   onPointerMove,
@@ -57,7 +60,7 @@ export function Staff({
 
   return (
     <svg
-      className={play ? undefined : 'staff'}
+      className={play ? undefined : pannable ? 'staff pannable' : 'staff'}
       viewBox={vb}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -177,7 +180,7 @@ export function Staff({
           key={i}
           d={a.d}
           stroke={a.c}
-          strokeWidth={play ? 3 : 2.6}
+          strokeWidth={play ? 2.3 : 2}
           strokeLinecap="round"
           strokeLinejoin="round"
           fill="none"

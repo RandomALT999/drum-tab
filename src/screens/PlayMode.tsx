@@ -121,12 +121,12 @@ export function PlayMode({ app }: { app: App }) {
           minHeight: 0,
           overflowY: st.compact ? 'hidden' : 'auto',
           overflowX: st.compact ? 'auto' : 'hidden',
-          padding: st.compact ? '4px 14px 6px' : '6px 14px 16px',
+          padding: st.compact ? '4px 0 6px' : '6px 14px 16px',
           display: 'flex',
           flexWrap: st.compact ? 'nowrap' : 'wrap',
-          gap: st.compact ? '0 16px' : '10px 16px',
+          gap: st.compact ? '0' : '10px 16px',
           alignContent: 'flex-start',
-          scrollSnapType: st.compact ? 'x proximity' : undefined,
+          scrollSnapType: st.compact ? 'x mandatory' : undefined,
         }}
       >
         {flat.map(({ bar, gi: i, partName, prev: pv }) => {

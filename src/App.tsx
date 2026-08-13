@@ -321,7 +321,8 @@ export class App extends Component<Record<string, never>, AppState> {
     if (this.state.compact) {
       // caption row (28) + its margin + the pane's own padding
       const cap = Math.max(90, h - (play ? 24 : 30) - 8);
-      return { width: Math.round(cap * aspect) + 'px', cap: cap + 'px' };
+      // exactly one bar per screen — a partial next bar just shows its caption
+      return { width: '100%', cap: cap + 'px' };
     }
     let bw = w;
     for (let n = 1; n <= 4; n++) {
@@ -732,7 +733,7 @@ export class App extends Component<Record<string, never>, AppState> {
       });
     });
     const beats = !play && !this.state.compact && SHOW_BEAT_NUMBERS;
-    const top = up ? 0 - (up - 1) * 13 : 12;
+    const top = up ? 0 - (up - 1) * 10 : 12;
     const bottom = beats
       ? Math.max(VBH, 166 + (down - 1) * 13)
       : down

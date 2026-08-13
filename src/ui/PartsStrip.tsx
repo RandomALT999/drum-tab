@@ -30,7 +30,7 @@ export function PartsStrip({ app }: { app: App }) {
         display: 'flex',
         alignItems: 'center',
         gap: 7,
-        padding: compact ? '5px 12px' : '7px 12px',
+        padding: compact ? '0 12px' : '7px 12px',
         borderBottom: compact ? 'none' : '1px solid rgba(236,231,221,.12)',
         flex: 'none',
       }}

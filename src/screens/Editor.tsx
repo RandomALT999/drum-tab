@@ -140,7 +140,7 @@ export function Editor({ app }: { app: App }) {
         <div
           style={{
             display: 'flex',
-            alignItems: 'stretch',
+            alignItems: 'center',
             flex: 'none',
             borderBottom: '1px solid rgba(236,231,221,.12)',
           }}
@@ -208,14 +208,14 @@ export function Editor({ app }: { app: App }) {
           flex: '1 1 0',
           minHeight: 0,
           background: '#111116',
-          padding: compact ? '6px 10px 4px' : '10px 12px 6px',
+          padding: compact ? '6px 0 4px' : '10px 12px 6px',
           overflowY: compact ? 'hidden' : 'auto',
           overflowX: compact ? 'auto' : 'hidden',
           display: 'flex',
           flexWrap: compact ? 'nowrap' : 'wrap',
           alignContent: 'flex-start',
-          gap: compact ? '0 12px' : '8px 14px',
-          scrollSnapType: compact ? 'x proximity' : undefined,
+          gap: compact ? '0' : '8px 14px',
+          scrollSnapType: compact ? 'x mandatory' : undefined,
         }}
       >
         {part.bars.map((bar, i) => {
@@ -293,6 +293,7 @@ export function Editor({ app }: { app: App }) {
                 </button>
               </div>
               <Staff
+                pannable={compact}
                 br={app.br()}
                 b={render}
                 vb={vb}

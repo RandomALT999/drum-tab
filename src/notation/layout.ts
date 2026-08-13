@@ -229,9 +229,9 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
         const key = n.s + ':' + v.up;
         const tier = accTier.get(key) ?? 0;
         accTier.set(key, tier + 1);
-        const ay = v.up ? ACCUP - tier * 13 : ACCDN + tier * 13;
+        const ay = v.up ? ACCUP - tier * 10 : ACCDN + tier * 10;
         accents.push({
-          d: `M${r1(x - 9)} ${r1(ay - 5)}L${r1(x + 9)} ${r1(ay)}L${r1(x - 9)} ${r1(ay + 5)}`,
+          d: `M${r1(x - 6.5)} ${r1(ay - 3.5)}L${r1(x + 6.5)} ${r1(ay)}L${r1(x - 6.5)} ${r1(ay + 3.5)}`,
           c,
         });
       }
