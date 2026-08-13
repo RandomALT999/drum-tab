@@ -22,9 +22,9 @@ import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
-import { NOTE0, PVBH, SIGS, V, VBH, VBW, VI, yOf } from './notation/constants';
+import { NOTE0, SIGS, V, VBH, VBW, VI, yOf } from './notation/constants';
 import { canPlace, slotW, slotsFor, xOf } from './notation/layout';
-import { ACCENT } from './config';
+import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
 import { PlayMode } from './screens/PlayMode';
@@ -218,6 +218,18 @@ export class App extends Component<Record<string, never>, AppState> {
     void this.openShared();
   }
 
+  componentDidUpdate(_p: Record<string, never>, prev: AppState): void {
+    // Switching screens or toggling the key remounts the pane, so the measured
+    // box belongs to the screen we just left. Re-measure before it is used.
+    if (prev.view !== this.state.view || prev.labels !== this.state.labels) {
+      if (prev.view !== this.state.view) {
+        this.pane = null;
+        this.playPane = null;
+      }
+      requestAnimationFrame(() => this.measure());
+    }
+  }
+
   componentWillUnmount(): void {
     this.stop();
     window.removeEventListener('resize', this.onResize);
@@ -296,7 +308,7 @@ export class App extends Component<Record<string, never>, AppState> {
    * a landscape phone drew a 330px staff inside an 1180px box.
    */
   barLayout(play = false): { width: string; cap: string } {
-    const aspect = (VBW - this.vbX()) / (play ? PVBH : VBH);
+    const aspect = (VBW - this.vbX()) / this.vbBox(play).h;
     const w = play ? this.state.playPaneW : this.state.paneW;
     const h = play ? this.state.playPaneH : this.state.paneH;
     if (!w || !h) return { width: '100%', cap: (play ? 240 : 196) + 'px' };
@@ -306,9 +318,9 @@ export class App extends Component<Record<string, never>, AppState> {
     // Landscape editing scrolls sideways through bars, so a bar is sized to
     // fill the pane's height and gets as long as that allows — rather than
     // being squeezed narrow to fit several across.
-    if (this.state.compact && !play) {
-      // head + the pane's own padding, so the block clears the pane exactly
-      const cap = Math.max(90, h - head - 10);
+    if (this.state.compact) {
+      // caption row (28) + its margin + the pane's own padding
+      const cap = Math.max(90, h - (play ? 24 : 30) - 8);
       return { width: Math.round(cap * aspect) + 'px', cap: cap + 'px' };
     }
     let bw = w;
@@ -452,12 +464,27 @@ export class App extends Component<Record<string, never>, AppState> {
     }
   };
 
+  /**
+   * Accepts a full shared link or the bare payload. iOS never deep-links into
+   * an installed home-screen app, so a link tapped in Messages opens Safari —
+   * pasting it here is how it reaches the installed copy.
+   */
+  async importShared(raw: string): Promise<void> {
+    const t = raw.trim();
+    const m = /[#&]s=([A-Za-z0-9_-]+)/.exec(t);
+    await this.addShared(m ? m[1] : t);
+  }
+
   /** A #s=… fragment means someone opened a shared link. */
   private async openShared(): Promise<void> {
     const m = /^#s=(.+)$/.exec(location.hash);
     if (!m) return;
     history.replaceState(null, '', location.pathname + location.search);
-    const p = await decodeSheet(m[1]);
+    await this.addShared(m[1]);
+  }
+
+  private async addShared(payload: string): Promise<void> {
+    const p = await decodeSheet(payload);
     if (!p) {
       this.flash('LINK NOT READABLE');
       return;
@@ -629,6 +656,13 @@ export class App extends Component<Record<string, never>, AppState> {
     const sc = this.scroller;
     const el = this.barEls[barId];
     if (!sc || !el) return;
+    if (this.state.compact) {
+      // Landscape lays bars out left to right, so follow the playhead sideways.
+      const left = el.offsetLeft - sc.clientWidth * 0.25;
+      if (Math.abs(sc.scrollLeft - left) > 24)
+        sc.scrollTo({ left: Math.max(left, 0), behavior: 'smooth' });
+      return;
+    }
     const top = el.offsetTop - sc.clientHeight * 0.3;
     if (Math.abs(sc.scrollTop - top) > 24)
       sc.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
@@ -665,9 +699,38 @@ export class App extends Component<Record<string, never>, AppState> {
   vbX(): number {
     return this.state.labels ? 0 : 52;
   }
+
+  /**
+   * Vertical extent actually needed by the bars on screen. The full 0–172 box
+   * reserves room for accents above, accents below the kick and the beat-number
+   * row, and that dead space is what limits how long a bar can be: the wider it
+   * gets the taller it gets, so on a landscape phone it ran out of height at
+   * ~65% of the width. Cropping to the content lets it fill the row.
+   */
+  private vbBox(play: boolean): { top: number; h: number } {
+    const p = this.proj();
+    const bars = play
+      ? (this.state.scope === 'song' ? p.parts : [this.curPart()]).flatMap((pt) => pt.bars)
+      : this.curPart().bars;
+    let up = false;
+    let down = false;
+    bars.forEach((b) =>
+      b.notes.forEach((n) => {
+        if (n.a !== 'accent' || n.rest) return;
+        if (VI[n.v].up) up = true;
+        else down = true;
+      }),
+    );
+    const beats = !play && !this.state.compact && SHOW_BEAT_NUMBERS;
+    const top = up ? 0 : 12;
+    const bottom = beats ? VBH : down ? 166 : 152;
+    return { top, h: bottom - top };
+  }
+
   viewBox(play = false): string {
     const x = this.vbX();
-    return `${x} 0 ${VBW - x} ${play ? PVBH : VBH}`;
+    const { top, h } = this.vbBox(play);
+    return `${x} ${top} ${VBW - x} ${h}`;
   }
 
   private nearVoice(uy: number): Voice {
@@ -1227,6 +1290,44 @@ export class App extends Component<Record<string, never>, AppState> {
               });
               this.setState({ part: 0, bar: 0, sel: null });
               close();
+            },
+          },
+        ],
+      };
+    }
+
+    if (S.k === 'import') {
+      const text = S.text ?? '';
+      return {
+        title: 'ADD A SHARED SHEET',
+        close,
+        input: {
+          val: text,
+          onChange: (v: string) => this.setState({ sheet: { k: 'import', text: v } }),
+        },
+        items: [
+          {
+            g: '↓',
+            t: 'ADD SHEET',
+            ...mono,
+            bg: this.acc,
+            fg: '#0d0d10',
+            min: '150px',
+            act: () => {
+              void this.importShared(text);
+              close();
+            },
+          },
+          {
+            g: '⧉',
+            t: 'PASTE',
+            ...mono,
+            min: '110px',
+            act: () => {
+              void navigator.clipboard
+                .readText()
+                .then((v) => this.setState({ sheet: { k: 'import', text: v } }))
+                .catch(() => this.flash('CLIPBOARD BLOCKED'));
             },
           },
         ],

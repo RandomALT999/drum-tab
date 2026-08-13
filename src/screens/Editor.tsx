@@ -218,7 +218,7 @@ export function Editor({ app }: { app: App }) {
             acc: ACCENT,
             softAcc: soft,
             loop: st.loop,
-            showBeats: SHOW_BEAT_NUMBERS,
+            showBeats: !compact && SHOW_BEAT_NUMBERS,
             play: false,
             prev: i > 0 ? part.bars[i - 1] : null,
             gi: i,

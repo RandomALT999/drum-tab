@@ -102,4 +102,6 @@ export type SheetState =
   /** pick the cymbal feel a new part, sheet or bar starts on */
   | { k: 'feel'; target: 'part' | 'project' | 'bar'; at?: number }
   /** tempo: type a number or tap it in */
-  | { k: 'tempo' };
+  | { k: 'tempo' }
+  /** paste a shared link or code */
+  | { k: 'import'; text?: string };

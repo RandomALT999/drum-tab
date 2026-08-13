@@ -169,13 +169,17 @@ export function Staff({
       ))}
       <path d={b.flags} fill="#ece7dd" />
 
-      <g fontFamily="Noto Music" fontSize={40}>
-        {b.accents.map((a, i) => (
-          <text key={i} x={a.x} y={a.y} fill={a.c}>
-            {CH.accent}
-          </text>
-        ))}
-      </g>
+      {b.accents.map((a, i) => (
+        <path
+          key={i}
+          d={a.d}
+          stroke={a.c}
+          strokeWidth={play ? 3 : 2.6}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          fill="none"
+        />
+      ))}
       {b.rings.map((o, i) => (
         <circle key={i} cx={o.x} cy={o.y} r={4.6} stroke={o.c} strokeWidth={1.5} fill="none" />
       ))}

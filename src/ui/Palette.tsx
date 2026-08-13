@@ -224,7 +224,21 @@ export function Palette({ app }: { app: App }) {
         {cell(
           av === 'accent',
           'ACCENT',
-          glyph(17, 12, '0 0 17 12', -1.1, 1.4, 32, CH.accent),
+          <svg
+            width="18"
+            height="11"
+            viewBox="0 0 18 11"
+            style={{ display: 'block', flex: 'none' }}
+          >
+            <path
+              d="M2 2L16 5.5L2 9"
+              stroke="currentColor"
+              strokeWidth="2.4"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              fill="none"
+            />
+          </svg>,
           () => app.applyArt('accent'),
         )}
         {cell(

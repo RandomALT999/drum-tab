@@ -32,7 +32,8 @@ export function Library({ app }: { app: App }) {
           display: 'flex',
           alignItems: 'flex-end',
           justifyContent: 'space-between',
-          gap: 12,
+          gap: 8,
+          flexWrap: 'wrap',
         }}
       >
         <div>
@@ -55,6 +56,22 @@ export function Library({ app }: { app: App }) {
             Your library
           </div>
         </div>
+        <button
+          onClick={() => app.setState({ sheet: { k: 'import' } })}
+          aria-label="Add a shared sheet"
+          style={{
+            height: 44,
+            padding: '0 14px',
+            borderRadius: 22,
+            border: '1px solid rgba(236,231,221,.22)',
+            color: 'rgba(236,231,221,.6)',
+            font: '600 12px IBM Plex Mono,monospace',
+            letterSpacing: '.06em',
+            flex: 'none',
+          }}
+        >
+          PASTE
+        </button>
         <button
           onClick={() => app.setState({ sheet: { k: 'feel', target: 'project' } })}
           style={{

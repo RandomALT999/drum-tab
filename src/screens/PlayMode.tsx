@@ -118,13 +118,14 @@ export function PlayMode({ app }: { app: App }) {
         style={{
           flex: '1 1 0',
           minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: '6px 14px 16px',
+          overflowY: st.compact ? 'hidden' : 'auto',
+          overflowX: st.compact ? 'auto' : 'hidden',
+          padding: st.compact ? '4px 14px 6px' : '6px 14px 16px',
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '10px 16px',
+          flexWrap: st.compact ? 'nowrap' : 'wrap',
+          gap: st.compact ? '0 16px' : '10px 16px',
           alignContent: 'flex-start',
+          scrollSnapType: st.compact ? 'x proximity' : undefined,
         }}
       >
         {flat.map(({ bar, gi: i, partName, prev: pv }) => {
@@ -147,7 +148,11 @@ export function PlayMode({ app }: { app: App }) {
               ref={(el) => {
                 if (el) app.barEls[bar.id] = el;
               }}
-              style={{ width: barW, flex: 'none' }}
+              style={{
+                width: barW,
+                flex: 'none',
+                scrollSnapAlign: st.compact ? 'start' : undefined,
+              }}
             >
               <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, paddingLeft: 2 }}>
                 <span

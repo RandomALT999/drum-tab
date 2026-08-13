@@ -3,8 +3,6 @@ import { RES } from '../model/factory';
 import {
   ACCDN,
   ACCUP,
-  ACDX,
-  ACDY,
   BEAMH,
   BEAMSTEP,
   BL,
@@ -118,7 +116,7 @@ export interface BarRender {
   /** drag ghosts */
   gn: { x: number; y: number }[];
   gx: { x: number; y: number }[];
-  accents: Mark[];
+  accents: { d: string; c: string }[];
   rings: Mark[];
   selBox: { x: number; y: number }[];
   stems: string;
@@ -186,7 +184,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const r16: Mark[] = [];
   const gn: { x: number; y: number }[] = [];
   const gx: { x: number; y: number }[] = [];
-  const accents: Mark[] = [];
+  const accents: { d: string; c: string }[] = [];
   const rings: Mark[] = [];
   const selBox: { x: number; y: number }[] = [];
   const stems: string[] = [];
@@ -212,12 +210,15 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       else nh.push({ x: r1(x - NDX), y: r1(y + NDY), c, op });
       if (n.a === 'open' && v.ring) rings.push({ x: r1(x), y: r1(y - 13), c });
       if (v.led) led.push('M' + r1(x - 13) + ' ' + y + 'h26');
-      if (n.a === 'accent')
+      if (n.a === 'accent') {
+        // Drawn, not set: U+1D17B is a combining mark with zero advance, which
+        // browsers decline to render on its own — the accent was invisible.
+        const ay = v.up ? ACCUP : ACCDN;
         accents.push({
-          x: r1(x - ACDX),
-          y: r1((v.up ? ACCUP : ACCDN) - ACDY),
+          d: `M${r1(x - 9)} ${r1(ay - 5)}L${r1(x + 9)} ${r1(ay)}L${r1(x - 9)} ${r1(ay + 5)}`,
           c,
         });
+      }
       if (n.a === 'ghost') {
         parens.push('M' + r1(x - 13) + ' ' + (y - 6) + 'q-3.5 6 0 12');
         parens.push('M' + r1(x + 13) + ' ' + (y - 6) + 'q3.5 6 0 12');
