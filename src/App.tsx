@@ -22,8 +22,8 @@ import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
-import { NOTE0, SIGS, V, VBH, VBW, VI, yOf } from './notation/constants';
-import { canPlace, slotW, slotsFor, xOf } from './notation/layout';
+import { NOTE0, SIGS, V, VBH, VI, yOf } from './notation/constants';
+import { BR_DEFAULT, canPlace, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
 import { Editor } from './screens/Editor';
@@ -104,7 +104,7 @@ export class App extends Component<Record<string, never>, AppState> {
   private toastTimer: ReturnType<typeof setTimeout> | undefined;
 
   /* dom */
-  private pane: HTMLElement | null = null;
+  pane: HTMLElement | null = null;
   private playPane: HTMLElement | null = null;
   private scroller: HTMLElement | null = null;
   barEls: Record<string, HTMLElement> = {};
@@ -308,7 +308,7 @@ export class App extends Component<Record<string, never>, AppState> {
    * a landscape phone drew a 330px staff inside an 1180px box.
    */
   barLayout(play = false): { width: string; cap: string } {
-    const aspect = (VBW - this.vbX()) / this.vbBox(play).h;
+    const aspect = (this.br(play) + 14 - this.vbX()) / this.vbBox(play).h;
     const w = play ? this.state.playPaneW : this.state.paneW;
     const h = play ? this.state.playPaneH : this.state.paneH;
     if (!w || !h) return { width: '100%', cap: (play ? 240 : 196) + 'px' };
@@ -651,21 +651,27 @@ export class App extends Component<Record<string, never>, AppState> {
 
   /** Scroll the playing bar to 30% from the top — but only when it has
       actually drifted, or it would jitter on every step. */
+  /**
+   * Follows the playhead every frame instead of firing one smooth scroll per
+   * bar. A per-bar scroll lands late and then jerks to catch up; positioning
+   * directly from the current bar's own progress keeps it continuous and on
+   * time. Runs in the editor too, not just Play mode.
+   */
   private autoscroll(barId: string): void {
-    if (this.state.view !== 'play') return;
-    const sc = this.scroller;
+    const sc = this.state.view === 'play' ? this.scroller : this.pane;
     const el = this.barEls[barId];
     if (!sc || !el) return;
     if (this.state.compact) {
       // Landscape lays bars out left to right, so follow the playhead sideways.
-      const left = el.offsetLeft - sc.clientWidth * 0.25;
-      if (Math.abs(sc.scrollLeft - left) > 24)
-        sc.scrollTo({ left: Math.max(left, 0), behavior: 'smooth' });
+      const max = sc.scrollWidth - sc.clientWidth;
+      const left = Math.max(0, Math.min(max, el.offsetLeft - sc.clientWidth * 0.28));
+      if (Math.abs(sc.scrollLeft - left) > 0.5) sc.scrollLeft = left;
       return;
     }
-    const top = el.offsetTop - sc.clientHeight * 0.3;
-    if (Math.abs(sc.scrollTop - top) > 24)
-      sc.scrollTo({ top: Math.max(top, 0), behavior: 'smooth' });
+    if (this.state.view !== 'play') return;
+    const max = sc.scrollHeight - sc.clientHeight;
+    const top = Math.max(0, Math.min(max, el.offsetTop - sc.clientHeight * 0.3));
+    if (Math.abs(sc.scrollTop - top) > 0.5) sc.scrollTop = top;
   }
 
   private async wakeOn(): Promise<void> {
@@ -712,25 +718,47 @@ export class App extends Component<Record<string, never>, AppState> {
     const bars = play
       ? (this.state.scope === 'song' ? p.parts : [this.curPart()]).flatMap((pt) => pt.bars)
       : this.curPart().bars;
-    let up = false;
-    let down = false;
-    bars.forEach((b) =>
+    let up = 0;
+    let down = 0;
+    bars.forEach((b) => {
+      const tally = new Map<string, number>();
       b.notes.forEach((n) => {
         if (n.a !== 'accent' || n.rest) return;
-        if (VI[n.v].up) up = true;
-        else down = true;
-      }),
-    );
+        const k = n.s + ':' + VI[n.v].up;
+        const c = (tally.get(k) ?? 0) + 1;
+        tally.set(k, c);
+        if (VI[n.v].up) up = Math.max(up, c);
+        else down = Math.max(down, c);
+      });
+    });
     const beats = !play && !this.state.compact && SHOW_BEAT_NUMBERS;
-    const top = up ? 0 : 12;
-    const bottom = beats ? VBH : down ? 166 : 152;
+    const top = up ? 0 - (up - 1) * 13 : 12;
+    const bottom = beats
+      ? Math.max(VBH, 166 + (down - 1) * 13)
+      : down
+        ? 166 + (down - 1) * 13
+        : 152;
     return { top, h: bottom - top };
+  }
+
+  /**
+   * Staff right edge. Widening it stretches the note field only, so a bar can
+   * fill a landscape row without scaling the notation up — the alternative,
+   * a taller box, runs out of screen height long before the row is full.
+   */
+  br(play = false): number {
+    const w = play ? this.state.playPaneW : this.state.paneW;
+    const h = play ? this.state.playPaneH : this.state.paneH;
+    if (!this.state.compact || !w || !h) return BR_DEFAULT;
+    const cap = Math.max(90, h - (play ? 24 : 30) - 8);
+    const need = (w / cap) * this.vbBox(play).h - 14 + this.vbX();
+    return Math.round(Math.max(BR_DEFAULT, Math.min(1100, need - 14)));
   }
 
   viewBox(play = false): string {
     const x = this.vbX();
     const { top, h } = this.vbBox(play);
-    return `${x} ${top} ${VBW - x} ${h}`;
+    return `${x} ${top} ${this.br(play) + 14 - x} ${h}`;
   }
 
   private nearVoice(uy: number): Voice {
@@ -747,11 +775,11 @@ export class App extends Component<Record<string, never>, AppState> {
   }
 
   private hitNote(bar: Bar, ux: number, uy: number) {
-    const sw = slotW(bar);
+    const sw = slotW(bar, this.br());
     let best: import('./model/types').Note | null = null;
     let bd = 1e9;
     bar.notes.forEach((n) => {
-      const dx = xOf(bar, n.s) - ux;
+      const dx = xOf(bar, n.s, this.br()) - ux;
       const dy = yOf(VI[n.v].st) - uy;
       const d = Math.hypot(dx * 0.8, dy);
       if (Math.abs(dx) < Math.max(sw * 0.6, 9) && Math.abs(dy) < 9 && d < bd) {
@@ -783,7 +811,7 @@ export class App extends Component<Record<string, never>, AppState> {
     const r = svg.getBoundingClientRect();
     const x0 = this.vbX();
     return {
-      ux: x0 + ((e.clientX - r.left) * (VBW - x0)) / r.width,
+      ux: x0 + ((e.clientX - r.left) * (this.br() + 14 - x0)) / r.width,
       uy: ((e.clientY - r.top) * VBH) / r.height,
     };
   }
@@ -795,7 +823,7 @@ export class App extends Component<Record<string, never>, AppState> {
    */
   private slotAt(bar: Bar, ux: number, d: NoteValue = this.state.dur): number {
     const step = slotsFor(bar, d);
-    const raw = (ux - NOTE0) / slotW(bar);
+    const raw = (ux - NOTE0) / slotW(bar, this.br());
     const snapped = Math.round(raw / step) * step;
     return Math.max(0, Math.min(RES(bar) - step, snapped));
   }

@@ -38,7 +38,11 @@ body {
      which propagates from <html>, not <body>. */
   background: #0d0d10;
   color: #ece7dd;
-  font-family: Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-family:
+    Helvetica Neue,
+    Helvetica,
+    Arial,
+    sans-serif;
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
   /* Holding a note must not raise the text-selection / callout UI on a phone. */
@@ -137,7 +141,14 @@ input[type='range']::-moz-range-thumb {
   }
 }
 
-/* Drag-to-move a note must not scroll the notation pane underneath it. */
+/* Drag-to-move a note must not scroll the notation pane underneath it. Play
+   mode has no note gestures, so its staff keeps normal panning. */
 .staff {
   touch-action: none;
+}
+
+/* Every part of a scroller should answer to a swipe, including the empty space
+   past the last bar. */
+.pane {
+  touch-action: pan-x pan-y;
 }

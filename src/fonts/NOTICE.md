@@ -26,7 +26,7 @@ rendered ink bounds. **Re-run those measurements if this file is ever
 regenerated with a different subset or replaced with another music font** —
 noteheads will be visibly off-centre otherwise.
 
-Note that Noto Music does *not* contain Mathematical Bold digits
+Note that Noto Music does _not_ contain Mathematical Bold digits
 (`U+1D7D0–1D7D7`); the app draws time signatures with the family's own tabular
 digits instead.
 

@@ -21,7 +21,6 @@ import {
   R8DX,
   R8DY,
   SDX,
-  SPAN,
   STUB,
   UPEND,
   VI,
@@ -31,9 +30,17 @@ import {
   yOf,
 } from './constants';
 
-export const beatW = (bar: Bar): number => SPAN / bar.n;
-export const slotW = (bar: Bar): number => beatW(bar) / bar.sub;
-export const xOf = (bar: Bar, s: number): number => NOTE0 + s * slotW(bar);
+/**
+ * Right edge of the staff. Everything left of NOTE0 (labels, clef, meter) is
+ * fixed; widening the staff stretches only the note field, so a landscape bar
+ * fills the row by giving the notes more room rather than by scaling the
+ * glyphs up — which is what a taller viewBox would have done.
+ */
+export const BR_DEFAULT = BR;
+export const spanFor = (br: number): number => br - 12 - NOTE0;
+export const beatW = (bar: Bar, br: number = BR): number => spanFor(br) / bar.n;
+export const slotW = (bar: Bar, br: number = BR): number => beatW(bar, br) / bar.sub;
+export const xOf = (bar: Bar, s: number, br: number = BR): number => NOTE0 + s * slotW(bar, br);
 
 /**
  * How many grid slots one note of value `d` occupies.
@@ -152,6 +159,8 @@ export interface LayoutCtx {
   prev: Bar | null;
   /** global bar index; bar 0 always shows the time signature */
   gi: number;
+  /** right edge of the staff in user units */
+  br: number;
 }
 
 interface Col {
@@ -170,8 +179,9 @@ interface Col {
  */
 export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const res = RES(bar);
-  const bw = beatW(bar);
-  const sw = slotW(bar);
+  const br = ctx.br;
+  const bw = beatW(bar, br);
+  const sw = slotW(bar, br);
   const { hot, acc, softAcc } = ctx;
   const drag = ctx.drag && ctx.drag.barId === bar.id ? ctx.drag : null;
   const dragId = drag ? drag.noteId : null;
@@ -185,6 +195,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const gn: { x: number; y: number }[] = [];
   const gx: { x: number; y: number }[] = [];
   const accents: { d: string; c: string }[] = [];
+  const accTier = new Map<string, number>();
   const rings: Mark[] = [];
   const selBox: { x: number; y: number }[] = [];
   const stems: string[] = [];
@@ -202,7 +213,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     .forEach((n) => {
       const v = VI[n.v];
       const y = yOf(v.st);
-      const x = xOf(bar, n.s);
+      const x = xOf(bar, n.s, br);
       const c = n.s === hot ? acc : IV;
       const op = n.a === 'ghost' ? 0.6 : 1;
       if (v.hd === 'o') oh.push({ x: r1(x - ODX), y: r1(y + ODY), c, op });
@@ -213,7 +224,12 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       if (n.a === 'accent') {
         // Drawn, not set: U+1D17B is a combining mark with zero advance, which
         // browsers decline to render on its own — the accent was invisible.
-        const ay = v.up ? ACCUP : ACCDN;
+        // Two accented notes in one slot share a stem direction, so their marks
+        // would land on the same spot; stack them clear of each other instead.
+        const key = n.s + ':' + v.up;
+        const tier = accTier.get(key) ?? 0;
+        accTier.set(key, tier + 1);
+        const ay = v.up ? ACCUP - tier * 13 : ACCDN + tier * 13;
         accents.push({
           d: `M${r1(x - 9)} ${r1(ay - 5)}L${r1(x + 9)} ${r1(ay)}L${r1(x - 9)} ${r1(ay + 5)}`,
           c,
@@ -229,7 +245,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   live
     .filter((n) => n.rest)
     .forEach((n) => {
-      const x = xOf(bar, n.s);
+      const x = xOf(bar, n.s, br);
       const cy = VI[n.v].up ? 84 : 116;
       const c = n.s === hot ? acc : 'rgba(236,231,221,.72)';
       if (n.d === 4) r4.push({ x: r1(x - R4DX), y: r1(cy + R4DY), c });
@@ -240,7 +256,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
 
   if (drag) {
     const v = VI[drag.v];
-    const x = xOf(bar, drag.s);
+    const x = xOf(bar, drag.s, br);
     const y = yOf(v.st);
     if (v.hd === 'n') gn.push({ x: r1(x - NDX), y: r1(y + NDY) });
     else gx.push({ x: r1(x - XDX), y: r1(y + XDY) });
@@ -266,7 +282,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       const cols: Col[] = slots.map((s) => {
         const ns = inBeat.filter((n) => n.s === s);
         const ys = ns.map((n) => yOf(VI[n.v].st));
-        const x = xOf(bar, s);
+        const x = xOf(bar, s, br);
         return {
           s,
           sx: r1(up ? x + SDX : x - SDX),
@@ -346,7 +362,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
                   : slotW(bar)
                 : next
                   ? next.sx - c.sx
-                  : slotW(bar);
+                  : slotW(bar, br);
               const w = Math.min(STUB, Math.abs(span) * 0.5);
               beams.push({
                 x: r1(left ? c.sx - 0.9 - w : c.sx - 0.9),
@@ -400,7 +416,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     false,
   );
 
-  const hl = hot >= 0 ? [{ x: r1(xOf(bar, hot) - sw / 2), w: r1(sw), fill: softAcc }] : [];
+  const hl = hot >= 0 ? [{ x: r1(xOf(bar, hot, br) - sw / 2), w: r1(sw), fill: softAcc }] : [];
 
   const L = ctx.loop;
   const loop: { d: string }[] = [];
@@ -408,8 +424,8 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     const inA = L.a.barId === bar.id;
     const inB = !!L.b && L.b.barId === bar.id;
     if (inA || inB) {
-      const xa = inA ? r1(xOf(bar, L.a.s)) : BL + 4;
-      const xb = inB && L.b ? r1(xOf(bar, L.b.s)) : BR - 4;
+      const xa = inA ? r1(xOf(bar, L.a.s, br)) : BL + 4;
+      const xb = inB && L.b ? r1(xOf(bar, L.b.s, br)) : br - 4;
       loop.push({
         d: 'M' + xa + ' 6v6M' + xb + ' 6v6M' + Math.min(xa, xb) + ' 6H' + Math.max(xa, xb),
       });

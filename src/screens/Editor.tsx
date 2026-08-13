@@ -137,7 +137,14 @@ export function Editor({ app }: { app: App }) {
       </div>
 
       {compact ? (
-        <div style={{ display: 'flex', alignItems: 'center', flex: 'none' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'stretch',
+            flex: 'none',
+            borderBottom: '1px solid rgba(236,231,221,.12)',
+          }}
+        >
           <Transport app={app} />
           <div style={{ flex: '1 1 auto', minWidth: 0 }}>
             <PartsStrip app={app} />
@@ -195,6 +202,7 @@ export function Editor({ app }: { app: App }) {
 
       {/* notation pane — the only thing on this screen that scrolls */}
       <div
+        className="pane"
         ref={app.setPane}
         style={{
           flex: '1 1 0',
@@ -222,6 +230,7 @@ export function Editor({ app }: { app: App }) {
             play: false,
             prev: i > 0 ? part.bars[i - 1] : null,
             gi: i,
+            br: app.br(),
           });
           const selected = st.bar === i;
           return (
@@ -284,6 +293,7 @@ export function Editor({ app }: { app: App }) {
                 </button>
               </div>
               <Staff
+                br={app.br()}
                 b={render}
                 vb={vb}
                 acc={ACCENT}

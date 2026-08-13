@@ -21,6 +21,8 @@ export interface StaffProps {
   acc: string;
   labels: boolean;
   maxHeight: string;
+  /** right edge of the staff in user units */
+  br: number;
   /** Play mode: heavier strokes, no beat numbers, no selection ring */
   play?: boolean;
   onPointerDown?: (e: RPointerEvent<SVGSVGElement>) => void;
@@ -36,6 +38,7 @@ export function Staff({
   acc,
   labels,
   maxHeight,
+  br,
   play = false,
   onPointerDown,
   onPointerMove,
@@ -54,7 +57,7 @@ export function Staff({
 
   return (
     <svg
-      className="staff"
+      className={play ? undefined : 'staff'}
       viewBox={vb}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
@@ -90,12 +93,12 @@ export function Staff({
         ))}
 
       <path
-        d="M66 60H426M66 76H426M66 92H426M66 108H426M66 124H426"
+        d={`M66 60H${br}M66 76H${br}M66 92H${br}M66 108H${br}M66 124H${br}`}
         stroke={staffStroke}
         strokeWidth={staffW}
         fill="none"
       />
-      <path d="M67 60v64M425 60v64" stroke={barStroke} strokeWidth={barW} fill="none" />
+      <path d={`M67 60v64M${br - 1} 60v64`} stroke={barStroke} strokeWidth={barW} fill="none" />
       <path d={b.ledgers} stroke={staffStroke} strokeWidth={staffW} fill="none" />
 
       <text x={CLEF_X} y={CLEF_Y} fontFamily="Noto Music" fontSize={CLEF_FS} fill="#ece7dd">

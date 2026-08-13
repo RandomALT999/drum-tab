@@ -114,6 +114,7 @@ export function PlayMode({ app }: { app: App }) {
       </div>
 
       <div
+        className="pane"
         ref={app.setPlayPane}
         style={{
           flex: '1 1 0',
@@ -141,6 +142,7 @@ export function PlayMode({ app }: { app: App }) {
             play: true,
             prev: pv,
             gi: i,
+            br: app.br(true),
           });
           return (
             <div
@@ -176,7 +178,15 @@ export function PlayMode({ app }: { app: App }) {
                   {partName}
                 </span>
               </div>
-              <Staff b={render} vb={vb} acc={ACCENT} labels={st.labels} maxHeight={cap} play />
+              <Staff
+                br={app.br(true)}
+                b={render}
+                vb={vb}
+                acc={ACCENT}
+                labels={st.labels}
+                maxHeight={cap}
+                play
+              />
             </div>
           );
         })}

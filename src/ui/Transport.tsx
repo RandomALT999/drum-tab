@@ -42,7 +42,7 @@ export function Transport({ app }: { app: App }) {
         alignItems: 'center',
         gap: 8,
         padding: st.compact ? '6px 12px' : '10px 12px',
-        borderBottom: '1px solid rgba(236,231,221,.12)',
+        borderBottom: st.compact ? 'none' : '1px solid rgba(236,231,221,.12)',
         // wrap rather than scroll — reaching a control must never need a swipe
         flexWrap: 'wrap',
         flex: 'none',
