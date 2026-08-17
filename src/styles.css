@@ -64,11 +64,6 @@ textarea {
   box-sizing: border-box;
 }
 
-/* The app shell is pinned to the viewport rather than merely as tall as it.
-   Left to flow, any overshoot — a landscape band a pixel too tall, or a stale
-   dvh mid-rotation — makes the *document* scrollable, and rotating back leaves
-   it scrolled so the whole UI sits high. Fixed positioning removes that
-   failure mode; dvh keeps it honest when iOS Safari's toolbar auto-hides. */
 /* The mount point has to carry the height through, or the shell's 100% has
    nothing to resolve against. */
 #root {
@@ -88,12 +83,16 @@ textarea {
   overflow: hidden;
 }
 
-/* In a browser tab the toolbars auto-hide, so track the dynamic viewport there
-   instead. Standalone has no toolbars and 100% is already exact. */
-html:not([data-standalone]) .app-root {
-  height: 100vh;
-  height: 100dvh;
-  max-height: 100%;
+/* In a browser tab the toolbars auto-hide, so track the dynamic viewport there.
+   Standalone has no toolbars and 100% is already exact. Using the media feature
+   rather than a flag set at startup means it cannot be read before iOS has
+   settled on a display mode. */
+@media (display-mode: browser) {
+  .app-root {
+    height: 100vh;
+    height: 100dvh;
+    max-height: 100%;
+  }
 }
 
 /* Screens fill the shell exactly. */

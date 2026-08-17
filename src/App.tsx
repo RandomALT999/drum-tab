@@ -124,8 +124,7 @@ export class App extends Component<Record<string, never>, AppState> {
     };
     reset();
     requestAnimationFrame(reset);
-    setTimeout(reset, 120);
-    setTimeout(reset, 400);
+    setTimeout(reset, 250);
   };
   private onResize = (): void => this.settle();
   private onKey = (e: KeyboardEvent): void => {
@@ -298,21 +297,23 @@ export class App extends Component<Record<string, never>, AppState> {
     // it here too means a missed or coalesced event can't leave the layout stale.
     const compact = !!this.mq?.matches;
     if (compact !== this.state.compact) this.setState({ compact });
+    // Quantised, and with a wide dead band. Bar geometry is derived from these,
+    // so a one-pixel wobble — a scrollbar appearing, a sub-pixel rounding after
+    // rotation — would re-lay every bar and nudge the notation visibly after
+    // everything had already settled.
+    const q = (n: number): number => Math.round(n / 4) * 4;
     const pp = this.playPane;
     if (pp) {
-      const ph = pp.clientHeight;
-      const pw = this.innerW(pp);
-      if (
-        (ph && Math.abs(ph - this.state.playPaneH) > 2) ||
-        (pw && Math.abs(pw - this.state.playPaneW) > 2)
-      )
+      const ph = q(pp.clientHeight);
+      const pw = q(this.innerW(pp));
+      if (ph > 0 && pw > 0 && (ph !== this.state.playPaneH || pw !== this.state.playPaneW))
         this.setState({ playPaneH: ph, playPaneW: pw });
     }
     const el = this.pane;
     if (!el) return;
-    const h = el.clientHeight;
-    const w = this.innerW(el);
-    if ((h && Math.abs(h - this.state.paneH) > 2) || (w && Math.abs(w - this.state.paneW) > 2))
+    const h = q(el.clientHeight);
+    const w = q(this.innerW(el));
+    if (h > 0 && w > 0 && (h !== this.state.paneH || w !== this.state.paneW))
       this.setState({ paneH: h, paneW: w });
   }
   /**
