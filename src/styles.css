@@ -79,19 +79,21 @@ textarea {
 .app-root {
   position: relative;
   width: 100%;
-  height: 100%;
+  /* Dynamic viewport is the BASE, not the exception. An engine that does not
+     evaluate `display-mode` skips the override below, and it must land on the
+     rule that copes with auto-hiding toolbars — sizing to 100% there would put
+     the note palette behind Safari's toolbar, out of reach. */
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100%;
   overflow: hidden;
 }
 
-/* In a browser tab the toolbars auto-hide, so track the dynamic viewport there.
-   Standalone has no toolbars and 100% is already exact. Using the media feature
-   rather than a flag set at startup means it cannot be read before iOS has
-   settled on a display mode. */
-@media (display-mode: browser) {
+/* Standalone has no toolbars, so 100% of the locked body is already exact and
+   avoids chasing a dvh that lags a frame behind a rotation. */
+@media (display-mode: standalone) {
   .app-root {
-    height: 100vh;
-    height: 100dvh;
-    max-height: 100%;
+    height: 100%;
   }
 }
 

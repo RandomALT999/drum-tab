@@ -72,6 +72,8 @@ export const R16DY = 22;
 export const ACDX = 10.2;
 export const ACDY = 5.6;
 export const ACCUP = 8;
+/** Vertical step between stacked accent marks in one slot. */
+export const ACC_STACK = 10;
 export const ACCDN = 158;
 
 export const UPEND = 16;

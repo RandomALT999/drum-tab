@@ -12,6 +12,8 @@ export function PlayMode({ app }: { app: App }) {
   const soft = softAccent(ACCENT);
   const vb = app.viewBox(true);
   const { width: barW, cap } = app.barLayout(true);
+  // hoisted: br() scans every bar on screen, so it must not run once per bar
+  const br = app.br(true);
   const loopOn = !!(st.loop && st.loop.a && st.loop.b);
   const speedLabel = (st.speed === 1 ? '1' : String(st.speed).replace('0.', '.')) + '×';
 
@@ -142,7 +144,7 @@ export function PlayMode({ app }: { app: App }) {
             play: true,
             prev: pv,
             gi: i,
-            br: app.br(true),
+            br,
           });
           return (
             <div
@@ -179,7 +181,7 @@ export function PlayMode({ app }: { app: App }) {
                 </span>
               </div>
               <Staff
-                br={app.br(true)}
+                br={br}
                 b={render}
                 vb={vb}
                 acc={ACCENT}

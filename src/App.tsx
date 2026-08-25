@@ -22,7 +22,7 @@ import { History } from './model/history';
 import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
-import { SIGS, V, VBH, VI, yOf } from './notation/constants';
+import { ACC_STACK, SIGS, V, VBH, VI, yOf } from './notation/constants';
 import { BR_DEFAULT, canPlace, note0For, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
@@ -113,18 +113,28 @@ export class App extends Component<Record<string, never>, AppState> {
   private wl: WakeLockSentinel | null = null;
 
   /**
-   * iOS restores scroll and settles the viewport asynchronously after a
-   * rotation, so one immediate reset is not enough — the offset reappears a
-   * frame later and reads as the UI sitting off-position.
+   * Re-measure once the viewport has stopped moving. Bar geometry is derived
+   * from the measured pane, so an extra late pass is not free — it re-lays
+   * every bar and nudges the notation after the rotation already looked
+   * finished. Hence exactly one follow-up, and any pending one is cancelled so
+   * a burst of events cannot queue several that land out of order.
    */
+  private settleRaf = 0;
+  private settleTimer: ReturnType<typeof setTimeout> | undefined;
   private settle = (): void => {
+    cancelAnimationFrame(this.settleRaf);
+    clearTimeout(this.settleTimer);
     const reset = (): void => {
-      if (window.scrollY || window.scrollX) window.scrollTo(0, 0);
+      // Never fight the browser scrolling a focused field into view — the
+      // on-screen keyboard moves the visual viewport, which lands here too.
+      const el = document.activeElement;
+      const editing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+      if (!editing && (window.scrollY || window.scrollX)) window.scrollTo(0, 0);
       this.measure();
     };
     reset();
-    requestAnimationFrame(reset);
-    setTimeout(reset, 250);
+    this.settleRaf = requestAnimationFrame(reset);
+    this.settleTimer = setTimeout(reset, 250);
   };
   private onResize = (): void => this.settle();
   private onKey = (e: KeyboardEvent): void => {
@@ -260,25 +270,30 @@ export class App extends Component<Record<string, never>, AppState> {
     document.removeEventListener('visibilitychange', this.onVis);
     this.ro?.disconnect();
     this.mq?.removeEventListener?.('change', this.onOri);
+    cancelAnimationFrame(this.settleRaf);
+    clearTimeout(this.settleTimer);
+    clearTimeout(this.toastTimer);
   }
 
   /* ---------- refs / measurement ---------- */
 
+  /* React passes null on unmount; taking it clears the reference instead of
+     leaving a detached node that stepBar and autoscroll would still act on. */
   setPane = (el: HTMLElement | null): void => {
-    if (el && el !== this.pane) {
-      this.pane = el;
-      this.ro?.observe(el);
-      requestAnimationFrame(() => this.measure());
-    }
+    if (el === this.pane) return;
+    this.pane = el;
+    if (!el) return;
+    this.ro?.observe(el);
+    requestAnimationFrame(() => this.measure());
   };
   /** Play mode's scroller doubles as the surface its bar cap is measured from. */
   setPlayPane = (el: HTMLElement | null): void => {
-    if (el && el !== this.playPane) {
-      this.playPane = el;
-      this.scroller = el;
-      this.ro?.observe(el);
-      requestAnimationFrame(() => this.measure());
-    }
+    if (el === this.playPane) return;
+    this.playPane = el;
+    this.scroller = el;
+    if (!el) return;
+    this.ro?.observe(el);
+    requestAnimationFrame(() => this.measure());
   };
 
   /** The bar SVG is height-capped from the measured pane so a whole bar —
@@ -297,24 +312,29 @@ export class App extends Component<Record<string, never>, AppState> {
     // it here too means a missed or coalesced event can't leave the layout stale.
     const compact = !!this.mq?.matches;
     if (compact !== this.state.compact) this.setState({ compact });
-    // Quantised, and with a wide dead band. Bar geometry is derived from these,
-    // so a one-pixel wobble — a scrollbar appearing, a sub-pixel rounding after
-    // rotation — would re-lay every bar and nudge the notation visibly after
-    // everything had already settled.
-    const q = (n: number): number => Math.round(n / 4) * 4;
-    const pp = this.playPane;
-    if (pp) {
-      const ph = q(pp.clientHeight);
-      const pw = q(this.innerW(pp));
-      if (ph > 0 && pw > 0 && (ph !== this.state.playPaneH || pw !== this.state.playPaneW))
-        this.setState({ playPaneH: ph, playPaneW: pw });
-    }
-    const el = this.pane;
-    if (!el) return;
-    const h = q(el.clientHeight);
-    const w = q(this.innerW(el));
-    if (h > 0 && w > 0 && (h !== this.state.paneH || w !== this.state.paneW))
-      this.setState({ paneH: h, paneW: w });
+    // Quantised so a one-pixel wobble — a scrollbar appearing, sub-pixel
+    // rounding after a rotation — cannot re-lay every bar. Rounding DOWN, not
+    // to nearest: these feed the bar height cap, and over-reporting the pane by
+    // even 2px clips the staff against a pane that does not scroll.
+    const q = (n: number): number => Math.max(0, Math.floor(n / 4) * 4);
+    // Each dimension stands on its own. Gating one on the other meant a pane
+    // that was briefly zero-width — negative once padding is subtracted — threw
+    // away a perfectly good height and left the bars sized for another screen.
+    const take = (
+      el: HTMLElement | null,
+      hKey: 'paneH' | 'playPaneH',
+      wKey: 'paneW' | 'playPaneW',
+    ): void => {
+      if (!el) return;
+      const next: Partial<AppState> = {};
+      const h = q(el.clientHeight);
+      const w = q(this.innerW(el));
+      if (h > 0 && h !== this.state[hKey]) next[hKey] = h;
+      if (w > 0 && w !== this.state[wKey]) next[wKey] = w;
+      if (Object.keys(next).length) this.setState(next as Pick<AppState, typeof hKey>);
+    };
+    take(this.playPane, 'playPaneH', 'playPaneW');
+    take(this.pane, 'paneH', 'paneW');
   }
   /**
    * Height cap for a bar's SVG, measured from the pane rather than fixed, so a
@@ -331,7 +351,6 @@ export class App extends Component<Record<string, never>, AppState> {
    * a landscape phone drew a 330px staff inside an 1180px box.
    */
   barLayout(play = false): { width: string; cap: string } {
-    const aspect = (this.br(play) + 14 - this.vbX()) / this.vbBox(play).h;
     const w = play ? this.state.playPaneW : this.state.paneW;
     const h = play ? this.state.playPaneH : this.state.paneH;
     if (!w || !h) return { width: '100%', cap: (play ? 240 : 196) + 'px' };
@@ -347,6 +366,8 @@ export class App extends Component<Record<string, never>, AppState> {
       // exactly one bar per screen — a partial next bar just shows its caption
       return { width: '100%', cap: cap + 'px' };
     }
+    // only the tiling branch needs this, and it costs a full scan of the notes
+    const aspect = (this.br(play) + 14 - this.vbX()) / this.vbBox(play).h;
     let bw = w;
     for (let n = 1; n <= 4; n++) {
       bw = (w - gap * (n - 1)) / n;
@@ -771,12 +792,11 @@ export class App extends Component<Record<string, never>, AppState> {
       });
     });
     const beats = !play && !this.state.compact && SHOW_BEAT_NUMBERS;
-    const top = up ? 0 - (up - 1) * 10 : 12;
-    const bottom = beats
-      ? Math.max(VBH, 166 + (down - 1) * 13)
-      : down
-        ? 166 + (down - 1) * 13
-        : 152;
+    // ACC_STACK is the step layout.ts stacks marks by; keeping the reservation
+    // on the same constant stops the box drifting out of step with the drawing.
+    const top = up ? 0 - (up - 1) * ACC_STACK : 12;
+    const dnBottom = 164 + (down - 1) * ACC_STACK;
+    const bottom = beats ? Math.max(VBH, dnBottom) : down ? dnBottom : 152;
     return { top, h: bottom - top };
   }
 

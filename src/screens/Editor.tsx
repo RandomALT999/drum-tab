@@ -15,6 +15,8 @@ export function Editor({ app }: { app: App }) {
   const soft = softAccent(ACCENT);
   const vb = app.viewBox();
   const { width: barW, cap } = app.barLayout();
+  // hoisted: br() scans the whole part, so it must not run once per bar
+  const br = app.br();
   const compact = st.compact;
 
   return (
@@ -230,7 +232,7 @@ export function Editor({ app }: { app: App }) {
             play: false,
             prev: i > 0 ? part.bars[i - 1] : null,
             gi: i,
-            br: app.br(),
+            br,
           });
           const selected = st.bar === i;
           return (
@@ -297,7 +299,7 @@ export function Editor({ app }: { app: App }) {
                 </button>
               </div>
               <Staff
-                br={app.br()}
+                br={br}
                 b={render}
                 vb={vb}
                 acc={ACCENT}
