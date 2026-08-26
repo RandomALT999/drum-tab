@@ -1558,6 +1558,9 @@ export class App extends Component<Record<string, never>, AppState> {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
+          // Clear of the status bar / Dynamic Island band that .status-band
+          // paints. Zero on anything that shortens the viewport instead.
+          paddingTop: 'env(safe-area-inset-top, 0px)',
           // in landscape the notch sits on one side, not the top
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)',

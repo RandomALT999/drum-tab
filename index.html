@@ -20,12 +20,18 @@
     <!-- `black`, not `black-translucent`: black-translucent draws the page from
          y=0 but iOS still shrinks the viewport by the status-bar height, leaving
          a strip at the bottom that no layout can reach. iOS reads this only at
-         install time — changing it needs the Home Screen icon re-added. -->
+         install time — changing it needs the Home Screen icon re-added.
+         Kept for iOS 25 and earlier only. From iOS 26 this tag is ignored and
+         the band is tinted by sampling `.status-band` instead. -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black" />
     <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon-bone.png" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon-bone.svg" />
   </head>
   <body>
+    <!-- The colour iOS samples for the status bar / Dynamic Island band. Lives
+         in the document rather than in React so it is painted on the very first
+         frame — the sample is taken then and is not reliably re-taken later. -->
+    <div class="status-band" aria-hidden="true"></div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

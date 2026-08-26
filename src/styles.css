@@ -38,8 +38,10 @@ body {
      and a document that can scroll is what lets a rotation leave the UI offset. */
   overflow: hidden;
   /* Any area the viewport does not cover is painted with the canvas colour,
-     which propagates from <html>, not <body>. */
-  background: #0d0d10;
+     which propagates from <html>, not <body>. Written long-hand because iOS
+     reads `background-color` when it falls back to the body for the status-bar
+     tint — and it must stay fully opaque, or the band goes translucent. */
+  background-color: #0d0d10;
   color: #ece7dd;
   font-family:
     Helvetica Neue,
@@ -95,6 +97,29 @@ textarea {
   .app-root {
     height: 100%;
   }
+}
+
+/* From iOS 26 a Home Screen web app runs edge-to-edge and the system paints
+   its own layer across the status bar / Dynamic Island. It tints that layer with
+   the background-color of a fixed or sticky element sitting at the top edge; if
+   it finds none, it falls back to frosting whatever page pixels are behind the
+   band, which is the smear you see when content scrolls under it.
+
+   So this strip exists to be sampled. Flat, fully opaque, no gradient and no
+   backdrop-filter — any of those send it back to the frosted path. It is also
+   the one place the shell's no-position:fixed rule does not apply: a rotation
+   that offsets a fixed box would move this one too, but it is a single flat
+   colour over a body of the same colour, so there is nothing to see. */
+.status-band {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background-color: #0d0d10;
+  /* over the app, under the sheets and toasts */
+  z-index: 10;
+  pointer-events: none;
 }
 
 /* Screens fill the shell exactly. */

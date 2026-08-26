@@ -29,7 +29,12 @@ export function BottomSheet({ spec }: { spec: SheetSpec }) {
       onClick={spec.close}
       style={{
         position: 'fixed',
-        inset: 0,
+        // stops short of the status band: a translucent box at the top edge is
+        // what iOS samples to decide the band should be frosted glass
+        top: 'env(safe-area-inset-top, 0px)',
+        left: 0,
+        right: 0,
+        bottom: 0,
         background: 'rgba(0,0,0,.62)',
         display: 'flex',
         alignItems: 'flex-end',
