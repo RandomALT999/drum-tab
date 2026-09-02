@@ -17,13 +17,32 @@
     <!-- iOS "Add to Home Screen" -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Drum Tab" />
-    <!-- `black`, not `black-translucent`: black-translucent draws the page from
-         y=0 but iOS still shrinks the viewport by the status-bar height, leaving
-         a strip at the bottom that no layout can reach. iOS reads this only at
-         install time — changing it needs the Home Screen icon re-added.
-         Kept for iOS 25 and earlier only. From iOS 26 this tag is ignored and
-         the band is tinted by sampling `.status-band` instead. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <!-- Measured on an iPhone 16 Pro, Safari 27, installed to the Home Screen:
+         screen 402x874, viewport 402x812, env(safe-area-inset-top) 0, bottom 34.
+         So this tag is very much still honoured — `black` was shortening the
+         web view by the 62px status band and reporting no top inset, because as
+         far as the engine is concerned there is nothing up there to avoid.
+
+         Two things followed from that. Nothing of ours was ever pinned at the
+         top edge for iOS to sample, so its status-bar layer always fell through
+         to frosting whatever it found. And the size of that inset is iOS's to
+         change: it drops the band in landscape and puts it back on the way
+         home, which moves the whole web view down the screen after a rotation
+         has already looked finished.
+
+         `black-translucent` hands us the full screen instead, once and for
+         both orientations. The page then owns the band: .status-band paints it
+         and .app-root's padding keeps the UI out of it. The old objection to
+         this value — content drawn from y=0 while the viewport stayed short,
+         stranding a strip at the bottom — predates viewport-fit=cover, and the
+         measurement above shows the bottom edge already reaching the screen.
+
+         iOS reads this only at Add to Home Screen. Changing it does nothing
+         until the icon is deleted and re-added. -->
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <link rel="apple-touch-icon" href="%BASE_URL%apple-touch-icon-bone.png" />
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%favicon-bone.svg" />
   </head>

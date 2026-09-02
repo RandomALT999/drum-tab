@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 
 /**
  * What the device actually reports, rather than what we assume it reports.
@@ -10,12 +10,12 @@ import { useState } from 'react';
  */
 
 /** env() has no computed value to read, so measure a probe box instead. */
-function inset(side: 'top' | 'right' | 'bottom' | 'left'): number {
-  const el = document.createElement('div');
-  const vert = side === 'top' || side === 'bottom';
+function inset(side: "top" | "right" | "bottom" | "left"): number {
+  const el = document.createElement("div");
+  const vert = side === "top" || side === "bottom";
   el.style.cssText =
-    'position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;' +
-    (vert ? 'width:1px;height:' : 'height:1px;width:') +
+    "position:absolute;top:0;left:0;visibility:hidden;pointer-events:none;" +
+    (vert ? "width:1px;height:" : "height:1px;width:") +
     `env(safe-area-inset-${side},0px)`;
   document.body.appendChild(el);
   const r = el.getBoundingClientRect();
@@ -23,46 +23,50 @@ function inset(side: 'top' | 'right' | 'bottom' | 'left'): number {
   return Math.round((vert ? r.height : r.width) * 10) / 10;
 }
 
-const yn = (b: boolean): string => (b ? 'yes' : 'no');
+const yn = (b: boolean): string => (b ? "yes" : "no");
 
 function report(): string {
   const d = document.documentElement;
   const vv = window.visualViewport;
   const nav = navigator as Navigator & { standalone?: boolean };
-  const root = document.querySelector('.app-root');
-  const band = document.querySelector('.status-band');
+  const root = document.querySelector(".app-root");
+  const band = document.querySelector(".status-band");
   // the library is .scroll-screen, every other view is .screen
-  const screenEl = document.querySelector('.screen, .scroll-screen');
+  const screenEl = document.querySelector(".screen, .scroll-screen");
   const top = (el: Element | null): string =>
-    el ? String(Math.round(el.getBoundingClientRect().top)) : '-';
+    el ? String(Math.round(el.getBoundingClientRect().top)) : "-";
   const h = (el: Element | null): string =>
-    el ? String(Math.round(el.getBoundingClientRect().height)) : '-';
+    el ? String(Math.round(el.getBoundingClientRect().height)) : "-";
   const mm = (q: string): boolean => !!window.matchMedia?.(q).matches;
+
+  const gap =
+    Math.max(screen.width, screen.height) -
+    Math.max(window.innerWidth, window.innerHeight);
 
   return [
     `BUILD   ${__BUILD__}`,
     `SW      controlled=${yn(!!navigator.serviceWorker?.controller)}`,
-    `MODE    dm-standalone=${yn(mm('(display-mode: standalone)'))} ` +
-      `nav.standalone=${nav.standalone === undefined ? 'n/a' : yn(!!nav.standalone)} ` +
-      `fullscreen=${yn(mm('(display-mode: fullscreen)'))}`,
+    `MODE    dm-standalone=${yn(mm("(display-mode: standalone)"))} ` +
+      `nav.standalone=${nav.standalone === undefined ? "n/a" : yn(!!nav.standalone)} ` +
+      `fullscreen=${yn(mm("(display-mode: fullscreen)"))}`,
     `SCREEN  ${screen.width}x${screen.height} avail ${screen.availWidth}x${screen.availHeight} dpr ${window.devicePixelRatio}`,
     `WINDOW  inner ${window.innerWidth}x${window.innerHeight} outer ${window.outerWidth}x${window.outerHeight}`,
     `DOCEL   client ${d.clientWidth}x${d.clientHeight} scroll ${window.scrollX},${window.scrollY}`,
     vv
       ? `VVIEW   ${Math.round(vv.width)}x${Math.round(vv.height)} offset ${Math.round(vv.offsetLeft)},${Math.round(vv.offsetTop)} page ${Math.round(vv.pageLeft)},${Math.round(vv.pageTop)} scale ${vv.scale}`
-      : 'VVIEW   n/a',
-    `INSETS  top=${inset('top')} right=${inset('right')} bottom=${inset('bottom')} left=${inset('left')}`,
-    `BAND    var=${d.style.getPropertyValue('--band') || '(unset)'} ` +
-      `h=${h(band)} pad=${root ? getComputedStyle(root).paddingTop : '-'}`,
+      : "VVIEW   n/a",
+    `INSETS  top=${inset("top")} right=${inset("right")} bottom=${inset("bottom")} left=${inset("left")}`,
+    `BAND    var=${d.style.getPropertyValue("--band") || "(unset)"} ` +
+      `h=${h(band)} pad=${root ? getComputedStyle(root).paddingTop : "-"}`,
     `BOXES   rootTop=${top(root)} rootH=${h(root)} screenTop=${top(screenEl)}`,
-    `GAP     ${Math.max(screen.width, screen.height) - Math.max(window.innerWidth, window.innerHeight)}`,
+    `GAP     ${gap} ${gap <= 8 ? "(viewport covers the screen — the band is ours to paint)" : "(iOS has inset us by this much and drawn its own band)"}`,
     `UA      ${navigator.userAgent}`,
-  ].join('\n');
+  ].join("\n");
 }
 
 export function Diag() {
   const [open, setOpen] = useState(false);
-  const [text, setText] = useState('');
+  const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
 
   const refresh = (): void => {
@@ -78,12 +82,12 @@ export function Diag() {
           setOpen(!open);
         }}
         style={{
-          font: '400 11px IBM Plex Mono,monospace',
-          letterSpacing: '.08em',
-          color: 'rgba(236,231,221,.3)',
+          font: "400 11px IBM Plex Mono,monospace",
+          letterSpacing: ".08em",
+          color: "rgba(236,231,221,.3)",
         }}
       >
-        BUILD {__BUILD__} · {open ? 'HIDE' : 'DIAGNOSTICS'}
+        BUILD {__BUILD__} · {open ? "HIDE" : "DIAGNOSTICS"}
       </button>
 
       {open && (
@@ -91,21 +95,21 @@ export function Diag() {
           <pre
             style={{
               margin: 0,
-              padding: '12px 13px',
-              background: '#17171c',
+              padding: "12px 13px",
+              background: "#17171c",
               borderRadius: 10,
-              font: '400 10px/1.55 IBM Plex Mono,monospace',
-              color: 'rgba(236,231,221,.72)',
+              font: "400 10px/1.55 IBM Plex Mono,monospace",
+              color: "rgba(236,231,221,.72)",
               // long lines wrap rather than forcing the library to scroll sideways
-              whiteSpace: 'pre-wrap',
-              wordBreak: 'break-word',
-              userSelect: 'text',
-              WebkitUserSelect: 'text',
+              whiteSpace: "pre-wrap",
+              wordBreak: "break-word",
+              userSelect: "text",
+              WebkitUserSelect: "text",
             }}
           >
             {text}
           </pre>
-          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
             <button
               onClick={() => {
                 void navigator.clipboard?.writeText(text).then(
@@ -115,26 +119,26 @@ export function Diag() {
               }}
               style={{
                 height: 36,
-                padding: '0 14px',
+                padding: "0 14px",
                 borderRadius: 9,
-                background: '#22222a',
-                font: '600 10px IBM Plex Mono,monospace',
-                letterSpacing: '.08em',
-                color: 'rgba(236,231,221,.7)',
+                background: "#22222a",
+                font: "600 10px IBM Plex Mono,monospace",
+                letterSpacing: ".08em",
+                color: "rgba(236,231,221,.7)",
               }}
             >
-              {copied ? 'COPIED' : 'COPY'}
+              {copied ? "COPIED" : "COPY"}
             </button>
             <button
               onClick={refresh}
               style={{
                 height: 36,
-                padding: '0 14px',
+                padding: "0 14px",
                 borderRadius: 9,
-                background: '#22222a',
-                font: '600 10px IBM Plex Mono,monospace',
-                letterSpacing: '.08em',
-                color: 'rgba(236,231,221,.7)',
+                background: "#22222a",
+                font: "600 10px IBM Plex Mono,monospace",
+                letterSpacing: ".08em",
+                color: "rgba(236,231,221,.7)",
               }}
             >
               RE-READ
@@ -142,8 +146,8 @@ export function Diag() {
           </div>
           <div
             style={{
-              font: '400 10px/1.6 IBM Plex Mono,monospace',
-              color: 'rgba(236,231,221,.28)',
+              font: "400 10px/1.6 IBM Plex Mono,monospace",
+              color: "rgba(236,231,221,.28)",
               marginTop: 8,
             }}
           >
