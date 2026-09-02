@@ -81,6 +81,11 @@ textarea {
 .app-root {
   position: relative;
   width: 100%;
+  /* Same value as the strip, so the app starts exactly where the band ends —
+     and, more importantly, so it lands in the same place on the screen whether
+     or not iOS has shortened the viewport for us. That difference is what made
+     a rotation appear to nudge everything down. */
+  padding-top: var(--band, env(safe-area-inset-top, 0px));
   /* Dynamic viewport is the BASE, not the exception. An engine that does not
      evaluate `display-mode` skips the override below, and it must land on the
      rule that copes with auto-hiding toolbars — sizing to 100% there would put
@@ -115,7 +120,12 @@ textarea {
   top: 0;
   left: 0;
   right: 0;
-  height: env(safe-area-inset-top, 0px);
+  /* --band is measured in JS, because env() cannot be trusted here: with
+     `status-bar-style: black` iOS tells the engine the viewport starts below
+     the status bar and reports a zero inset, then paints its band over the
+     page anyway. App.syncBand() works the real height out from the geometry
+     and writes it here; env() is only the pre-script fallback. */
+  height: var(--band, env(safe-area-inset-top, 0px));
   background-color: #0d0d10;
   /* over the app, under the sheets and toasts */
   z-index: 10;

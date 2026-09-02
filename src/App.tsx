@@ -307,7 +307,53 @@ export class App extends Component<Record<string, never>, AppState> {
     );
   }
 
+  /**
+   * How far down the status bar / Dynamic Island band pushes us.
+   *
+   * iOS gives this two different shapes and swaps between them across a
+   * rotation, which is the whole bug. Sometimes it shortens the viewport and
+   * draws its own black band above us; sometimes it hands us the full screen
+   * and composites the band over our own pixels. `env(safe-area-inset-top)`
+   * reports zero in *both* — it believes the first story — so the app either
+   * sits under the Island (frosted, unreadable) or jumps down by the height of
+   * the band when iOS changes its mind.
+   *
+   * The geometry does not lie. If the viewport is as tall as the screen, the
+   * band is over us and we must step out from under it ourselves; if it is
+   * shorter, that missing strip IS the band, so we note its height for next
+   * time and add nothing. Either way the app starts at the same place on the
+   * glass, which is what stops the rotation nudge.
+   */
+  private bandPx = 0;
+  private bandVar = '';
+  private syncBand(): void {
+    const nav = navigator as Navigator & { standalone?: boolean };
+    const standalone =
+      window.matchMedia?.('(display-mode: standalone)').matches || !!nav.standalone;
+    const portrait = window.innerHeight > window.innerWidth;
+    const long = Math.max(screen.height || 0, screen.width || 0);
+    const short = Math.min(screen.height || 0, screen.width || 0);
+    // Only in a Home Screen app, and only on a phone: a browser's own chrome
+    // shortens the viewport too, and a tablet's top inset is a fifth of this.
+    const armed = standalone && portrait && short > 0 && short < 500;
+    const gap = long - Math.max(window.innerWidth, window.innerHeight);
+    if (armed && gap > 8 && gap < 120) this.bandPx = gap;
+    // 62px covers every current Dynamic Island until we have measured the real
+    // one; being a few pixels generous costs nothing, being short leaves a
+    // frosted sliver.
+    const px = armed && Math.abs(gap) <= 8 ? this.bandPx || 62 : 0;
+    const v = px ? `max(env(safe-area-inset-top, 0px), ${px}px)` : 'env(safe-area-inset-top, 0px)';
+    // Writing it unconditionally would relayout on every resize callback, and
+    // the pane's ResizeObserver lands right back here.
+    if (v === this.bandVar) return;
+    this.bandVar = v;
+    document.documentElement.style.setProperty('--band', v);
+  }
+
   private measure(): void {
+    // Before anything is read: this sets the shell's top padding, so it decides
+    // how tall the pane is.
+    this.syncBand();
     // matchMedia's change event is the primary signal for `compact`; re-deriving
     // it here too means a missed or coalesced event can't leave the layout stale.
     const compact = !!this.mq?.matches;
@@ -1558,9 +1604,7 @@ export class App extends Component<Record<string, never>, AppState> {
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          // Clear of the status bar / Dynamic Island band that .status-band
-          // paints. Zero on anything that shortens the viewport instead.
-          paddingTop: 'env(safe-area-inset-top, 0px)',
+          // padding-top comes from --band in styles.css
           // in landscape the notch sits on one side, not the top
           paddingLeft: 'env(safe-area-inset-left)',
           paddingRight: 'env(safe-area-inset-right)',
