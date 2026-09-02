@@ -1,15 +1,30 @@
+import { execSync } from 'node:child_process';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
 const BASE = '/drum-tab/';
 
+const sha = ((): string => {
+  try {
+    return execSync('git rev-parse --short HEAD').toString().trim();
+  } catch {
+    return 'dev';
+  }
+})();
+const BUILD = `${sha} ${new Date().toISOString().slice(0, 16).replace('T', ' ')}`;
+
 export default defineConfig({
   base: BASE,
+  define: { __BUILD__: JSON.stringify(BUILD) },
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      // 'prompt' meant a fix only reached the phone if the update toast was
+      // both seen and tapped — and iOS keeps a Home Screen app alive for days,
+      // so it often was not. Two rounds of status-bar fixes sat undelivered
+      // behind it. autoUpdate lets the new worker claim the page on its own.
+      registerType: 'autoUpdate',
       includeAssets: ['apple-touch-icon-bone.png', 'favicon-bone.svg'],
       workbox: {
         // Fonts are large and immutable; make sure they land in the precache so

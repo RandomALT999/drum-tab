@@ -15,6 +15,19 @@ export function applyUpdate(): void {
 
 export function initPWA(): void {
   update = registerSW({
+    immediate: true,
+    onRegisteredSW(_url, r) {
+      if (!r) return;
+      // A Home Screen app on iOS is suspended, not closed, so it can go days
+      // without ever asking whether there is a newer build. Ask on every
+      // return to the foreground.
+      const check = (): void => {
+        if (document.visibilityState === 'visible') void r.update();
+      };
+      document.addEventListener('visibilitychange', check);
+      window.addEventListener('focus', check);
+      setInterval(check, 30 * 60 * 1000);
+    },
     onNeedRefresh() {
       listener?.();
     },

@@ -1,5 +1,6 @@
 import type { App } from '../App';
 import { ACCENT, SAFE_BOTTOM } from '../config';
+import { Diag } from '../ui/Diag';
 
 const meta = (p: import('../model/types').Project): string => {
   const n = p.parts.reduce((a, q) => a + q.bars.length, 0);
@@ -198,6 +199,8 @@ export function Library({ app }: { app: App }) {
       >
         Everything autosaves to this device.
       </div>
+
+      <Diag />
     </div>
   );
 }
