@@ -53,12 +53,21 @@ const EXTRA_KEY = 'drumtab.vhextra.v1';
 /** Nothing iOS holds back is bigger than a status bar. */
 export const MAX_EXTRA = 200;
 
+/**
+ * Measured on an iPhone 16 Pro, iOS 27: of the 62px iOS held back, 54 were
+ * being drawn — the last few vanish into the corner radius. Always clamped to
+ * what the device reports as held back, so a smaller band cannot overshoot.
+ */
+export const DEFAULT_EXTRA = 54;
+
 export function readExtra(): number {
   try {
-    const n = Number(localStorage.getItem(EXTRA_KEY));
-    return Number.isFinite(n) ? Math.max(0, Math.min(MAX_EXTRA, Math.round(n))) : 0;
+    const v = localStorage.getItem(EXTRA_KEY);
+    if (v === null) return DEFAULT_EXTRA;
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.max(0, Math.min(MAX_EXTRA, Math.round(n))) : DEFAULT_EXTRA;
   } catch {
-    return 0;
+    return DEFAULT_EXTRA;
   }
 }
 

@@ -97,7 +97,9 @@ textarea {
   --band: calc(var(--band-top) + var(--band-fade));
   /* Screen the viewport does not cover, along the bottom. Measured with the
      screen-fit test, because whether iOS paints down there is not something
-     script can ask. Nearly always 0. */
+     script can ask. Left at 0 here on purpose: only script can compare the
+     viewport against the screen, and one frame of a slightly short app beats
+     one frame with the note buttons off the bottom. */
   --vh-extra: 0px;
 }
 @media (display-mode: standalone) and (orientation: portrait) and (max-width: 500px) {
