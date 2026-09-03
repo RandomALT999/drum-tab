@@ -327,6 +327,8 @@ export class App extends Component<Record<string, never>, AppState> {
    */
   private bandPx = 0;
   private bandVar = '';
+  /** What --vh-extra is currently worth, so it can be taken back out below. */
+  private appliedExtra = 0;
   private syncBand(): void {
     const nav = navigator as Navigator & { standalone?: boolean };
     const standalone =
@@ -337,8 +339,15 @@ export class App extends Component<Record<string, never>, AppState> {
     // Only in a Home Screen app, and only on a phone: a browser's own chrome
     // shortens the viewport too, and a tablet's top inset is a fifth of this.
     const armed = standalone && portrait && short > 0 && short < 500;
-    const gap = long - Math.max(window.innerWidth, window.innerHeight);
-    if (armed && gap > 8 && gap < 120) this.bandPx = gap;
+    // Our own extension has to come back out before the shortfall is read.
+    // Extending the page can grow the viewport we measure against, and then
+    // the 62px shortfall reads as 8, which collapses the extension, which
+    // restores the 62 — the bottom of the app flickering between the two.
+    // Subtracting what we added lands on the same natural height whether or
+    // not iOS grew the viewport, so the answer stops moving.
+    const gap = long - (Math.max(window.innerWidth, window.innerHeight) - this.appliedExtra);
+    // and never learn a band height from a viewport we are inflating
+    if (armed && !this.appliedExtra && gap > 8 && gap < 120) this.bandPx = gap;
     // 62px covers every current Dynamic Island until we have measured the real
     // one; being a few pixels generous costs nothing, being short leaves a
     // frosted sliver.
@@ -351,18 +360,20 @@ export class App extends Component<Record<string, never>, AppState> {
     // when it shortens the viewport instead, the feather lands on our first
     // pixels rather than on its own strip — so it is gated on `armed` alone.
     const fade = armed ? readFade() : 0;
+    // Only where iOS is capable of shortening the viewport under us, and never
+    // by more than it has actually held back.
+    const extra = armed ? Math.min(readExtra(), Math.max(0, gap)) : 0;
     const top = `max(env(safe-area-inset-top, 0px), ${px}px)`;
-    const v = top + ' + ' + fade;
+    const v = `${top} + ${fade} + ${extra}`;
     // Writing it unconditionally would relayout on every resize callback, and
     // the pane's ResizeObserver lands right back here.
     if (v === this.bandVar) return;
     this.bandVar = v;
+    this.appliedExtra = extra;
     const s = document.documentElement.style;
     s.setProperty('--band-top', top);
     s.setProperty('--band-fade', fade + 'px');
-    // Only where iOS is capable of shortening the viewport under us, and never
-    // by more than it has actually held back.
-    s.setProperty('--vh-extra', (armed ? Math.min(readExtra(), Math.max(0, gap)) : 0) + 'px');
+    s.setProperty('--vh-extra', extra + 'px');
   }
 
   /** Adopt the screen the fit test found below the viewport. */
