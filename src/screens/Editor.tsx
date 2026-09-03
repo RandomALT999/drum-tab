@@ -215,11 +215,7 @@ export function Editor({ app }: { app: App }) {
           overflowX: compact ? 'auto' : 'hidden',
           display: 'flex',
           flexWrap: compact ? 'nowrap' : 'wrap',
-          // Upright, one bar is already as large as the pane's width allows,
-          // so the leftover height cannot be spent on it — centring at least
-          // stops it all pooling underneath. `safe` keeps the first bar
-          // reachable once there are enough of them to overflow.
-          alignContent: compact ? 'flex-start' : 'safe center',
+          alignContent: 'flex-start',
           gap: compact ? '0' : '8px 14px',
           scrollSnapType: compact ? 'x mandatory' : undefined,
         }}

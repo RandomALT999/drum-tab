@@ -8,8 +8,12 @@
  */
 const KEY = 'drumtab.fade.v1';
 
-/** Until the ruler has been used. Deliberately short: too much is screen gone. */
-export const DEFAULT_FADE = 32;
+/**
+ * Until the ruler has been used. Measured on an iPhone 16 Pro, iOS 27: the
+ * stripes came back sharp at 84px against a 62px band. Every pixel of this is
+ * screen given up, so it is a measurement, not a margin of safety.
+ */
+export const DEFAULT_FADE = 22;
 
 /** Past this the clearance costs more screen than the blur ever did. */
 export const MAX_FADE = 160;

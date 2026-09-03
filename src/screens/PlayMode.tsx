@@ -127,11 +127,7 @@ export function PlayMode({ app }: { app: App }) {
           display: 'flex',
           flexWrap: st.compact ? 'nowrap' : 'wrap',
           gap: st.compact ? '0' : '10px 16px',
-          // Upright, one bar is already as large as the pane's width allows,
-          // so the leftover height cannot be spent on it — centring at least
-          // stops it all pooling underneath. `safe` keeps the first bar
-          // reachable once there are enough of them to overflow.
-          alignContent: st.compact ? 'flex-start' : 'safe center',
+          alignContent: 'flex-start',
           scrollSnapType: st.compact ? 'x mandatory' : undefined,
         }}
       >

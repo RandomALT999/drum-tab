@@ -91,7 +91,7 @@ textarea {
 @media (display-mode: standalone) and (orientation: portrait) and (max-width: 500px) {
   :root {
     --band-top: max(env(safe-area-inset-top, 0px), 62px);
-    --band-fade: 32px;
+    --band-fade: 22px;
   }
 }
 
