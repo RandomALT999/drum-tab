@@ -1,81 +1,43 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { App } from '../App';
 import { ACCENT } from '../config';
 import { MAX_EXTRA, readExtra } from '../model/band';
 
-/** How far past the viewport's bottom edge to look. */
-const PROBE = 200;
-/** And how far back up, so the scale can be read against known-good screen. */
+/** How far back up from the viewport's edge to stripe, so the scale reads. */
 const BACK = 70;
 
 /**
  * Finds out whether the screen carries on below the app's viewport.
  *
- * The palette is the last child of a box that is exactly the viewport tall, so
- * it always ends flush with the viewport's bottom edge. If that edge is not the
+ * The palette is the last child of a box exactly the viewport tall, so it
+ * always ends flush with the viewport's bottom edge. If that edge is not the
  * screen's, iOS has handed the page a viewport shorter than the web view —
  * `black-translucent` is known to — and the difference is a strip along the
- * bottom no percentage height can reach.
+ * bottom that no percentage height reaches.
  *
- * Script cannot ask whether that strip is painted. So this draws stripes past
- * the edge and lets the eye answer: stripes still visible below the line are
- * screen the app could be using, and the reading is how much.
+ * Script cannot ask whether that strip is painted, so the eye answers: stripes
+ * run past the edge, and the marker is driven from a slider up here rather than
+ * by touching down there. That distinction is the whole point — anything below
+ * the viewport may render without ever receiving a touch, so a control placed
+ * in the region under test cannot be used to measure it.
  */
 export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
   const [vh, setVh] = useState(0);
-  const [mark, setMark] = useState(0);
+  const [extra, setExtra] = useState(0);
   const [saved, setSaved] = useState(false);
-  const strip = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const h = window.innerHeight;
-    setVh(h);
-    setMark(h + readExtra());
+    setVh(window.innerHeight);
+    setExtra(readExtra());
   }, []);
 
-  const extra = Math.max(0, Math.min(MAX_EXTRA, mark - vh));
   const screenH = Math.max(screen.height || 0, screen.width || 0);
-  const diff = Math.max(0, screenH - vh);
-
-  const put = (clientY: number): void => {
-    const r = strip.current?.getBoundingClientRect();
-    if (!r) return;
-    setMark(Math.max(vh - BACK, Math.min(vh + PROBE, Math.round(clientY))));
+  const unused = Math.max(0, screenH - vh);
+  const top = Math.min(MAX_EXTRA, unused || MAX_EXTRA);
+  const set = (n: number): void => {
+    setExtra(Math.max(0, Math.min(top, Math.round(n))));
     setSaved(false);
   };
-
-  const ticks: React.ReactNode[] = [];
-  for (let d = -BACK + (BACK % 10); d <= PROBE; d += 10) {
-    const major = d % 20 === 0;
-    ticks.push(
-      <div
-        key={d}
-        style={{
-          position: 'fixed',
-          top: vh + d,
-          right: 0,
-          height: 1,
-          width: major ? 30 : 16,
-          background: 'rgba(236,231,221,.85)',
-        }}
-      />,
-    );
-    if (major)
-      ticks.push(
-        <div
-          key={'l' + d}
-          style={{
-            position: 'fixed',
-            top: vh + d - 6,
-            right: 34,
-            font: '600 10px/1 IBM Plex Mono,monospace',
-            color: 'rgba(236,231,221,.9)',
-          }}
-        >
-          {d > 0 ? '+' + d : d}
-        </div>,
-      );
-  }
 
   const row = (k: string, v: string, accent = false): React.ReactNode => (
     <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12 }}>
@@ -89,7 +51,7 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
       onClick={act}
       style={{
         flex: 1,
-        height: 42,
+        height: 44,
         borderRadius: 10,
         background: primary ? ACCENT : '#22222a',
         color: primary ? '#0d0d10' : 'rgba(236,231,221,.75)',
@@ -101,9 +63,45 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
     </button>
   );
 
+  const ticks: React.ReactNode[] = [];
+  for (let d = -BACK + (BACK % 10); d <= MAX_EXTRA; d += 10) {
+    const major = d % 20 === 0;
+    ticks.push(
+      <div
+        key={d}
+        style={{
+          position: 'fixed',
+          top: vh + d,
+          left: 0,
+          height: 1,
+          width: major ? 34 : 18,
+          background: '#0d0d10',
+          pointerEvents: 'none',
+        }}
+      />,
+    );
+    if (major)
+      ticks.push(
+        <div
+          key={'l' + d}
+          style={{
+            position: 'fixed',
+            top: vh + d - 7,
+            left: 40,
+            font: '700 11px/1 IBM Plex Mono,monospace',
+            color: '#0d0d10',
+            background: '#ece7dd',
+            padding: '2px 3px',
+            pointerEvents: 'none',
+          }}
+        >
+          {d > 0 ? '+' + d : d}
+        </div>,
+      );
+  }
+
   return (
     <div style={{ position: 'fixed', inset: 0, zIndex: 200, background: '#0d0d10' }}>
-      {/* Controls live at the top: the bottom of the screen is what is on test. */}
       <div
         style={{
           padding: 'calc(var(--band) + 12px) 16px 0',
@@ -118,11 +116,11 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
             color: 'rgba(236,231,221,.55)',
           }}
         >
-          The orange line is where the app's viewport ends. Stripes you can still
-          see below it are screen the app is not using yet. Drag the line down to
-          the last stripe you can see and save. If there is nothing below the
-          line but blank screen, save 0 — that space is unreachable and the fix
-          is a different one.
+          Stripes run past the bottom of the app's viewport, marked by the blue
+          line. Slide until the orange line sits on the last stripe you can
+          actually see — push it too far and it will vanish off the screen. Then
+          save. If the orange line disappears the moment you leave 0, nothing
+          down there is being drawn: save 0 and tell me.
         </div>
 
         <div
@@ -135,19 +133,26 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
         >
           {row('SCREEN', screenH + 'px')}
           {row('VIEWPORT', vh + 'px')}
-          {row('UNUSED', diff + 'px')}
+          {row('UNUSED', unused + 'px')}
           {row('EXTRA', extra + 'px', true)}
         </div>
 
+        <input
+          type="range"
+          min={0}
+          max={top}
+          step={1}
+          value={extra}
+          onChange={(e) => set(Number(e.target.value))}
+          aria-label="Extra height"
+          style={{ width: '100%', accentColor: ACCENT }}
+        />
+
         <div style={{ display: 'flex', gap: 8 }}>
-          {btn('− 2', () => {
-            setMark(Math.max(vh - BACK, mark - 2));
-            setSaved(false);
-          })}
-          {btn('+ 2', () => {
-            setMark(Math.min(vh + PROBE, mark + 2));
-            setSaved(false);
-          })}
+          {btn('− 2', () => set(extra - 2))}
+          {btn('+ 2', () => set(extra + 2))}
+          {btn('ALL ' + top, () => set(top))}
+          {btn('NONE', () => set(0))}
         </div>
 
         <div style={{ display: 'flex', gap: 8 }}>
@@ -159,11 +164,6 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
             },
             true,
           )}
-          {btn('RESET', () => {
-            app.setExtra(0);
-            setMark(vh);
-            setSaved(true);
-          })}
           {btn('CLOSE', onClose)}
         </div>
 
@@ -174,24 +174,21 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
           }}
         >
           If saving pushes the note buttons off the screen, the space was not
-          real: come back here from ☰ — the top of the app never moves — and
-          press RESET. Ceiling {MAX_EXTRA}px.
+          real: come back here from ☰ — the top of the app never moves — and set
+          NONE.
         </div>
       </div>
 
       {/* the pattern under test, running past the bottom edge of the viewport */}
       <div
-        ref={strip}
-        onPointerDown={(e) => put(e.clientY)}
-        onPointerMove={(e) => e.buttons && put(e.clientY)}
         style={{
           position: 'fixed',
           left: 0,
           right: 0,
           top: vh - BACK,
-          height: BACK + PROBE,
+          height: BACK + MAX_EXTRA,
           background: 'repeating-linear-gradient(to bottom,#ece7dd 0 2px,#0d0d10 2px 4px)',
-          touchAction: 'none',
+          pointerEvents: 'none',
         }}
       />
       {ticks}
@@ -208,31 +205,15 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
           pointerEvents: 'none',
         }}
       />
-      <div
-        style={{
-          position: 'fixed',
-          top: vh - 20,
-          left: 6,
-          font: '600 9px/1 IBM Plex Mono,monospace',
-          letterSpacing: '.1em',
-          color: '#0d0d10',
-          background: 'rgb(120,190,255)',
-          padding: '3px 5px',
-          borderRadius: 4,
-          pointerEvents: 'none',
-        }}
-      >
-        VIEWPORT ENDS
-      </div>
 
       {/* the reading */}
       <div
         style={{
           position: 'fixed',
-          top: mark - 1,
+          top: vh + extra - 2,
           left: 0,
           right: 0,
-          height: 2,
+          height: 4,
           background: ACCENT,
           pointerEvents: 'none',
         }}
@@ -240,10 +221,10 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
       <div
         style={{
           position: 'fixed',
-          top: mark + 5,
-          left: 6,
-          font: '600 9px/1 IBM Plex Mono,monospace',
-          letterSpacing: '.1em',
+          top: vh + extra + 6,
+          right: 8,
+          font: '700 11px/1 IBM Plex Mono,monospace',
+          letterSpacing: '.08em',
           color: '#0d0d10',
           background: ACCENT,
           padding: '3px 5px',
@@ -251,7 +232,7 @@ export function ScreenFit({ app, onClose }: { app: App; onClose: () => void }) {
           pointerEvents: 'none',
         }}
       >
-        SEEN TO {mark - vh > 0 ? '+' + (mark - vh) : mark - vh}
+        +{extra}
       </div>
     </div>
   );
