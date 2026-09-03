@@ -1,0 +1,176 @@
+{
+  "slots": {
+    "kick": {
+      "peak": 0.3071,
+      "bands": [
+        [
+          "kick-0.mp3"
+        ],
+        [
+          "kick-1.mp3"
+        ],
+        [
+          "kick-2.mp3"
+        ]
+      ]
+    },
+    "snare": {
+      "peak": 0.1848,
+      "bands": [
+        [
+          "snare-0a.mp3",
+          "snare-0b.mp3"
+        ],
+        [
+          "snare-1a.mp3",
+          "snare-1b.mp3"
+        ],
+        [
+          "snare-2a.mp3",
+          "snare-2b.mp3"
+        ]
+      ]
+    },
+    "snare.rim": {
+      "peak": 0.2598,
+      "bands": [
+        [
+          "snare-rim-0a.mp3",
+          "snare-rim-0b.mp3"
+        ],
+        [
+          "snare-rim-1a.mp3",
+          "snare-rim-1b.mp3"
+        ]
+      ]
+    },
+    "snare.xstick": {
+      "peak": 0.0417,
+      "bands": [
+        [
+          "snare-xstick-0a.mp3",
+          "snare-xstick-0b.mp3"
+        ]
+      ]
+    },
+    "hihat": {
+      "peak": 0.1906,
+      "bands": [
+        [
+          "hihat-0a.mp3",
+          "hihat-0b.mp3"
+        ],
+        [
+          "hihat-1a.mp3",
+          "hihat-1b.mp3"
+        ],
+        [
+          "hihat-2a.mp3",
+          "hihat-2b.mp3"
+        ]
+      ]
+    },
+    "hihat.open": {
+      "peak": 0.2014,
+      "bands": [
+        [
+          "hihat-open-0a.mp3",
+          "hihat-open-0b.mp3"
+        ]
+      ]
+    },
+    "hihat.half": {
+      "peak": 0.2301,
+      "bands": [
+        [
+          "hihat-half-0a.mp3",
+          "hihat-half-0b.mp3"
+        ]
+      ]
+    },
+    "hhfoot": {
+      "peak": 0.0606,
+      "bands": [
+        [
+          "hhfoot-0a.mp3",
+          "hhfoot-0b.mp3"
+        ]
+      ]
+    },
+    "ride": {
+      "peak": 0.0561,
+      "bands": [
+        [
+          "ride-0.mp3"
+        ],
+        [
+          "ride-1.mp3"
+        ],
+        [
+          "ride-2.mp3"
+        ]
+      ]
+    },
+    "ride.bell": {
+      "peak": 0.1525,
+      "bands": [
+        [
+          "ride-bell-0.mp3"
+        ],
+        [
+          "ride-bell-1.mp3"
+        ]
+      ]
+    },
+    "ride.crash": {
+      "peak": 0.0561,
+      "bands": [
+        [
+          "ride-crash-0.mp3"
+        ],
+        [
+          "ride-crash-1.mp3"
+        ]
+      ]
+    },
+    "crash": {
+      "peak": 0.0728,
+      "bands": [
+        [
+          "crash-0.mp3"
+        ],
+        [
+          "crash-1.mp3"
+        ]
+      ]
+    },
+    "tom.hi": {
+      "peak": 0.3075,
+      "bands": [
+        [
+          "tom-hi-0.mp3"
+        ],
+        [
+          "tom-hi-1.mp3"
+        ],
+        [
+          "tom-hi-2.mp3"
+        ]
+      ]
+    },
+    "tom.low": {
+      "peak": 0.3226,
+      "bands": [
+        [
+          "tom-low-0.mp3"
+        ],
+        [
+          "tom-low-1.mp3"
+        ],
+        [
+          "tom-low-2.mp3"
+        ]
+      ]
+    }
+  }
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover"
+    />
+    <title>Drum Tab</title>
+    <meta
+      name="description"
+      content="Write, hear and perform drum grooves in real five-line drum notation."
+    />
+    <meta name="theme-color" content="#0d0d10" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- iOS "Add to Home Screen" -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="Drum Tab" />
+    <!-- Measured on an iPhone 16 Pro, Safari 27, installed to the Home Screen:
+         screen 402x874, viewport 402x812, env(safe-area-inset-top) 0, bottom 34.
+         So this tag is very much still honoured — `black` was shortening the
+         web view by the 62px status band and reporting no top inset, because as
+         far as the engine is concerned there is nothing up there to avoid.
+
+         Two things followed from that. Nothing of ours was ever pinned at the
+         top edge for iOS to sample, so its status-bar layer always fell through
+         to frosting whatever it found. And the size of that inset is iOS's to
+         change: it drops the band in landscape and puts it back on the way
+         home, which moves the whole web view down the screen after a rotation
+         has already looked finished.
+
+         `black-translucent` hands us the full screen instead, once and for
+         both orientations. The page then owns the band: .status-band paints it
+         and .app-root's padding keeps the UI out of it. The old objection to
+         this value — content drawn from y=0 while the viewport stayed short,
+         stranding a strip at the bottom — predates viewport-fit=cover, and the
+         measurement above shows the bottom edge already reaching the screen.
+
+         iOS reads this only at Add to Home Screen. Changing it does nothing
+         until the icon is deleted and re-added. -->
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
+    <link rel="apple-touch-icon" href="/drum-tab/apple-touch-icon-bone.png" />
+    <link rel="icon" type="image/svg+xml" href="/drum-tab/favicon-bone.svg" />
+    <script type="module" crossorigin src="/drum-tab/assets/index-BT8QZNBz.js"></script>
+    <link rel="stylesheet" crossorigin href="/drum-tab/assets/index-hAEAT8s-.css">
+  <link rel="manifest" href="/drum-tab/manifest.webmanifest"></head>
+  <body>
+    <!-- The colour iOS samples for the status bar / Dynamic Island band. Lives
+         in the document rather than in React so it is painted on the very first
+         frame — the sample is taken then and is not reliably re-taken later. -->
+    <div class="status-band" aria-hidden="true"></div>
+    <div id="root"></div>
+  </body>
+</html>
