@@ -18,7 +18,7 @@ export type Dynamic = 'normal' | 'accent' | 'ghost';
  * shot can be accented and a cross-stick can be ghosted, and the single
  * articulation field this replaced could express only one of the two at a time.
  */
-export type Tech = 'normal' | 'open' | 'half' | 'bell' | 'rim' | 'xstick';
+export type Tech = 'normal' | 'open' | 'half' | 'bell' | 'crash' | 'rim' | 'xstick';
 
 /**
  * The pre-split shape, where one field carried both axes. Only saved sheets and

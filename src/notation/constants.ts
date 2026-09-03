@@ -7,7 +7,7 @@ import type { Tech, Voice, VoiceId } from '../model/types';
 export const V: Voice[] = [
   { id: 'crash', ab: 'CR', nm: 'Crash', st: -2, hd: 'x', up: 1, led: 1 },
   { id: 'hihat', ab: 'HH', nm: 'Hi-Hat', st: -1, hd: 'x', up: 1, tech: ['open', 'half'] },
-  { id: 'ride', ab: 'RD', nm: 'Ride', st: 0, hd: 'o', up: 1, tech: ['bell'] },
+  { id: 'ride', ab: 'RD', nm: 'Ride', st: 0, hd: 'o', up: 1, tech: ['bell', 'crash'] },
   { id: 'hitom', ab: 'HT', nm: 'High Tom', st: 1, hd: 'n', up: 1 },
   { id: 'midtom', ab: 'MT', nm: 'Mid Tom', st: 2, hd: 'n', up: 1 },
   { id: 'snare', ab: 'SN', nm: 'Snare', st: 3, hd: 'n', up: 1, tech: ['rim', 'xstick'] },
@@ -23,6 +23,7 @@ export const TECHS: { id: Tech; ab: string; nm: string }[] = [
   { id: 'open', ab: 'OPEN', nm: 'Open' },
   { id: 'half', ab: 'HALF', nm: 'Half-open' },
   { id: 'bell', ab: 'BELL', nm: 'Bell' },
+  { id: 'crash', ab: 'CRASH', nm: 'Crashed ride' },
   { id: 'rim', ab: 'RIM', nm: 'Rim shot' },
   { id: 'xstick', ab: 'X-STK', nm: 'Cross-stick' },
 ];

@@ -26,7 +26,11 @@ export const VOICE: Record<
     gain: 0.42,
     tech: { open: 'hihat.open', half: 'hihat.half' },
   },
-  ride: { slot: 'ride', gain: 0.34, tech: { bell: 'ride.bell' } },
+  ride: {
+    slot: 'ride',
+    gain: 0.34,
+    tech: { bell: 'ride.bell', crash: 'ride.crash' },
+  },
   crash: { slot: 'crash', gain: 0.45 },
   hitom: { slot: 'tom.hi', gain: 0.78 },
   midtom: { slot: 'tom.hi', gain: 0.8, rate: 0.84 },
@@ -58,6 +62,7 @@ export const FAMILY: Record<string, string> = {
   'hihat.half': 'hihat',
   hhfoot: 'hihat',
   'ride.bell': 'ride',
+  'ride.crash': 'ride',
 };
 
 /**

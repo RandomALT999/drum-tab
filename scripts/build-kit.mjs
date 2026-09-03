@@ -116,23 +116,48 @@ const SLOTS = {
     src: IDIO + 'Hi-Hat Cymbal/',
     bands: [['HiHat_Close_rr1_Mid.wav', 'HiHat_Close_rr2_Mid.wav']],
   },
+  /*
+   * The cymbals, re-sourced after measuring their spectral centroids — the
+   * first pass had them the wrong way round. Suspended Cymbal 2's stick hit
+   * sits at 5631Hz and Cymbal 1's at 4207Hz, so the bright one was on the
+   * crash line playing what sounded like a ride tap while the ride line got
+   * the darker cymbal. And Cymbal 1's bell came in at 3457Hz — the dullest
+   * thing in the kit, for the sound that should ping hardest.
+   *
+   * So the ride, its bell and its crash all come off Suspended Cymbal 2, the
+   * higher cymbal, which also means crashing the ride is the same instrument
+   * as riding it. The crash line moves to real clash cymbals.
+   */
   ride: {
     sec: 1.1,
     rate: 32000,
-    src: IDIO + 'Suspended Cymbal 1/',
-    bands: [['susCymb1_hit_stick_pp1.wav'], ['susCymb1_hit_stick_mp1.wav'], ['susCymb1_hit_stick_f1.wav']],
+    src: IDIO + 'Suspended Cymbal 2/',
+    bands: [
+      ['susCymb2_hit_stick_pp1.wav'],
+      ['susCymb2_hit_stick_mp1.wav'],
+      ['susCymb2_hit_stick_mf1.wav'],
+    ],
   },
   'ride.bell': {
     sec: 1.3,
     rate: 32000,
-    src: IDIO + 'Suspended Cymbal 1/',
-    bands: [['susCymb1_hit_bell_mf1.wav']],
+    src: IDIO + 'Suspended Cymbal 2/',
+    bands: [['susCymb2_hit_bell_p1.wav'], ['susCymb2_hit_bell_f1.wav']],
   },
+  // Crashing the ride: the same cymbal, hit full rather than tapped.
+  'ride.crash': {
+    sec: 1.9,
+    rate: 32000,
+    src: IDIO + 'Suspended Cymbal 2/',
+    bands: [['susCymb2_hit_mf1.wav'], ['susCymb2_hit_fff1.wav']],
+  },
+  // Clash cymbals — two cymbals struck together, which is a crash, rather
+  // than a suspended one tapped with a stick, which is a ride.
   crash: {
     sec: 2.4,
     rate: 32000,
-    src: IDIO + 'Suspended Cymbal 2/',
-    bands: [['susCymb2_hit_stick_mp1.wav'], ['susCymb2_hit_stick_mf1.wav']],
+    src: IDIO + 'Clash Cymbals 1/',
+    bands: [['cymbal_crash1_mf1.wav'], ['cymbal_crash1_ff2.wav']],
   },
   'tom.hi': {
     sec: 0.6,

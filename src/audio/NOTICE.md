@@ -24,15 +24,35 @@ Sources per slot:
 | `hihat.open` | Hi-Hat Cymbal — `HiHat_HitO_rr1/rr2` |
 | `hihat.half` | Hi-Hat Cymbal — `HiHat_HitLoose_rr1/rr2` |
 | `hhfoot` | Hi-Hat Cymbal — `HiHat_Close_rr1/rr2` (the pedal chick) |
-| `ride` | Suspended Cymbal 1 — `hit_stick_pp/mp/f` |
-| `ride.bell` | Suspended Cymbal 1 — `hit_bell_mf` |
-| `crash` | Suspended Cymbal 2 — `hit_stick_mp/mf` |
+| `ride` | Suspended Cymbal 2 — `hit_stick_pp/mp/mf` |
+| `ride.bell` | Suspended Cymbal 2 — `hit_bell_p/f` |
+| `ride.crash` | Suspended Cymbal 2 — `hit_mf/fff` (the same cymbal, hit full) |
+| `crash` | Clash Cymbals 1 — `cymbal_crash1_mf1/ff2` |
 | `tom.hi` | Tom 1 Stick — `TomH_HitS_v2/v3/v4` |
 | `tom.low` | Tom 2 Stick — `TomL_HitS_v2/v3/v4` |
 
 Modern 3 is the snare because it is the only one in the library with a rim shot
 and a cross-stick alongside its plain hits — a rim shot recorded on a different
 drum than the notes around it is immediately obvious.
+
+The cymbals were chosen by measuring their spectral centroids, after a first
+pass put them the wrong way round:
+
+| | centroid |
+|---|---|
+| Suspended Cymbal 2, stick | 5631 Hz |
+| Clash Cymbals 1 | 5170 Hz |
+| Suspended Cymbal 2, bell | 4426 Hz |
+| Suspended Cymbal 1, stick | 4207 Hz |
+| Suspended Cymbal 1, bell | 3457 Hz |
+
+The bright cymbal had been on the crash line, where a stick tap on a suspended
+cymbal just sounds like a ride, while the ride line got the darker one — and
+Cymbal 1's bell was the dullest thing in the kit, for the sound that should ping
+hardest. So the ride, its bell and its crash all come off Suspended Cymbal 2,
+which also means crashing the ride is the same instrument as riding it, and the
+crash line moves to clash cymbals: two cymbals struck together, which is a
+crash.
 
 `scripts/build-kit.mjs` regenerates the pack: it fetches the sources, trims the
 leading silence, caps each length, fades the cut, downmixes to mono, resamples,

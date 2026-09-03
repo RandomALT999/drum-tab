@@ -17,6 +17,8 @@ export function Editor({ app }: { app: App }) {
   const { width: barW, cap } = app.barLayout();
   // hoisted: br() scans the whole part, so it must not run once per bar
   const br = app.br();
+  // one lookup for the whole part, not one per bar
+  const loop = app.loopRange(part.bars);
   const compact = st.compact;
 
   return (
@@ -227,7 +229,7 @@ export function Editor({ app }: { app: App }) {
             selId: sn && st.sel && st.sel.barId === bar.id ? sn.id : null,
             acc: ACCENT,
             softAcc: soft,
-            loop: st.loop,
+            loop,
             showBeats: !compact && SHOW_BEAT_NUMBERS,
             play: false,
             prev: i > 0 ? part.bars[i - 1] : null,

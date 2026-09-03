@@ -50,6 +50,12 @@ export class Kit {
   private noiseBuf: AudioBuffer | null = null;
   /** Everything scheduled but not yet finished, so a pause can cut it. */
   private live: { node: AudioScheduledSourceNode; gain: GainNode }[] = [];
+  /**
+   * The undecoded pack, kept so the bank can be rebuilt without the network.
+   * decodeAudioData detaches the buffer it is given, so these are held as
+   * bytes and a copy is handed over each time.
+   */
+  private raw = new Map<string, Uint8Array>();
   /** slot → velocity bands → round robins. Empty until the pack decodes. */
   private bank = new Map<string, Hit[][]>();
   /** slot → its peak before normalising, for balancing within a family. */
@@ -76,6 +82,11 @@ export class Kit {
         window.AudioContext ||
         (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
       this.ctx = new C();
+      // Safari parks a context at 'interrupted' after a call, another app
+      // taking the audio route, or a spell in the background — and it can stay
+      // there after the app is back on screen. Watch for it rather than
+      // waiting to be asked.
+      this.ctx.addEventListener?.('statechange', this.onState);
       this.master = this.ctx.createGain();
       this.master.gain.value = 0.85;
       this.master.connect(this.ctx.destination);
@@ -85,9 +96,52 @@ export class Kit {
       for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
       this.noiseBuf = b;
     }
-    if (this.ctx.state === 'suspended') void this.ctx.resume();
+    if (this.ctx.state !== 'running') void this.ctx.resume().catch(() => {});
     void this.load();
     return this.ctx;
+  }
+
+  private onState = (): void => {
+    const st = this.ctx?.state as string | undefined;
+    if (st && st !== 'running' && st !== 'closed') void this.ctx?.resume().catch(() => {});
+  };
+
+  /**
+   * Bring the context back, rebuilding it if it will not come.
+   *
+   * Resuming is enough for an ordinary suspend. An interruption Safari has
+   * given up on is not recoverable that way: the context reports a state it
+   * never leaves, and every scheduled event is silently dropped. The only cure
+   * is a new context — which is why the encoded pack is kept, so the bank can
+   * be decoded again without touching the network.
+   */
+  async revive(): Promise<void> {
+    const ctx = this.ctx;
+    if (!ctx) return;
+    if (ctx.state === 'running') return;
+    try {
+      await ctx.resume();
+    } catch {
+      /* fall through to the rebuild */
+    }
+    if (this.ctx !== ctx) return;
+    if ((ctx.state as string) === 'running') return;
+    try {
+      ctx.removeEventListener?.('statechange', this.onState);
+      void ctx.close();
+    } catch {
+      /* already gone */
+    }
+    this.ctx = null;
+    this.master = null;
+    this.noiseBuf = null;
+    this.bank.clear();
+    this.turn.clear();
+    this.live = [];
+    // Not `loading = false` by accident: ac() re-runs load(), which returns
+    // early unless it is cleared, and the bank has just been emptied.
+    this.loading = false;
+    this.ac();
   }
 
   /**
@@ -116,9 +170,16 @@ export class Kit {
               Promise.all(
                 band.map(async (file): Promise<Hit | null> => {
                   try {
-                    const r = await fetch(base + file);
-                    if (!r.ok) throw new Error(String(r.status));
-                    const buf = await ac.decodeAudioData(await r.arrayBuffer());
+                    let bytes = this.raw.get(file);
+                    if (!bytes) {
+                      const r = await fetch(base + file);
+                      if (!r.ok) throw new Error(String(r.status));
+                      bytes = new Uint8Array(await r.arrayBuffer());
+                      this.raw.set(file, bytes);
+                    }
+                    // slice(): decodeAudioData detaches what it is handed, and
+                    // these bytes have to survive for the next rebuild.
+                    const buf = await ac.decodeAudioData(bytes.slice().buffer);
                     return { buf, onset: onsetOf(buf) };
                   } catch {
                     return null;
@@ -230,7 +291,7 @@ export class Kit {
 
   /** iOS suspends the context when the app is backgrounded. */
   resumeIfNeeded(): void {
-    if (this.ctx && this.ctx.state === 'suspended') void this.ctx.resume();
+    if (this.ctx && this.ctx.state !== 'running') void this.revive();
   }
 
   private noise(

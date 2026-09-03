@@ -29,11 +29,16 @@ export function feelBar(feel: Feel, n = 4, dv = 4): Bar {
     notes.push({ id: uid(), v: feel.voice, s, d, a: 'normal' });
   };
 
+  // In an x/8 meter the beat already is an eighth, so a beat holds one of them
+  // rather than two — the same pattern written against the wrong unit came out
+  // at double speed.
+  const eighth = dv === 8 ? feel.sub : feel.sub / 2;
+
   for (let b = 0; b < n; b++) {
     const base = b * feel.sub;
     if (feel.id === 'eighths') {
       add(base, 8);
-      add(base + 2, 8);
+      if (dv !== 8) add(base + eighth, 8);
     } else if (feel.id === 'sixteenths') {
       for (let i = 0; i < 4; i++) add(base + i, 16);
     } else if (feel.id === 'triplets') {

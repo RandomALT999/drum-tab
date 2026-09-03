@@ -28,6 +28,9 @@ export function PlayMode({ app }: { app: App }) {
     }),
   );
 
+  // gi indexes this flattened run, so the loop has to be located in it too
+  const loop = app.loopRange(flat.map((f) => f.bar));
+
   return (
     <div
       className="screen"
@@ -139,7 +142,7 @@ export function PlayMode({ app }: { app: App }) {
             selId: null,
             acc: ACCENT,
             softAcc: soft,
-            loop: st.loop,
+            loop,
             showBeats: false,
             play: true,
             prev: pv,

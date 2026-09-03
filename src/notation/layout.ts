@@ -68,7 +68,11 @@ export const note0For = (bar: Bar, prev: Bar | null, gi: number): number =>
  */
 export const slotsFor = (bar: Bar, d: number): number => {
   if (isTriplet(bar)) return d <= 4 ? bar.sub : 1;
-  return Math.max(1, Math.round((bar.sub * 4) / d));
+  // Against the meter's own beat, not against a quarter. `sub` is slots per
+  // beat, and in 6/8 or 7/8 the beat is an eighth — reading it as a quarter put
+  // those bars on a grid of twice the resolution they should have, so an eighth
+  // could start halfway through one and the beam groups counted the wrong unit.
+  return Math.max(1, Math.round((bar.sub * bar.dv) / d));
 };
 
 export const isTriplet = (bar: Bar): boolean => bar.sub % 3 === 0 && bar.sub % 4 !== 0;
@@ -148,6 +152,8 @@ export interface BarRender {
   diamonds: Head[];
   /** cross-stick: a circle around the notehead */
   hoops: Mark[];
+  /** crashed ride: a small cross above the notehead */
+  crosses: string;
   /** rim shot: a stroke through the notehead */
   slashes: string;
   selBox: { x: number; y: number }[];
@@ -174,10 +180,14 @@ export interface LayoutCtx {
   selId: string | null;
   acc: string;
   softAcc: string;
-  loop: {
-    a: { barId: string; s: number };
-    b: { barId: string; s: number } | null;
-  } | null;
+  /**
+   * The loop as bar positions in the run being drawn: which bar it opens in,
+   * which it closes in, and the slot at each end. Given as indices because a
+   * bar cannot tell from its own id whether it falls inside the range — which
+   * is why the bracket used to appear only on the two end bars and leave the
+   * ones between them unmarked.
+   */
+  loop: { from: number; to: number; fromS: number; toS: number } | null;
   showBeats: boolean;
   play: boolean;
   /** previous bar in reading order — a meter change re-shows the time signature */
@@ -227,6 +237,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const ringSlash: string[] = [];
   const diamonds: Head[] = [];
   const hoops: Mark[] = [];
+  const crosses: string[] = [];
   const slashes: string[] = [];
   const selBox: { x: number; y: number }[] = [];
   const stems: string[] = [];
@@ -263,6 +274,13 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
         ringSlash.push('M' + r1(x - 6.4) + ' ' + r1(y - 7.4) + 'l12.8-11.2');
       // Cross-stick: the notehead ringed. Radius clears a notehead at 60px.
       if (k === 'xstick') hoops.push({ x: r1(x), y: r1(y), c });
+      // Crashing the ride rather than riding it. A small cross above the note:
+      // the ride's own head is already a ringed one, so another circle would
+      // read as part of it.
+      if (k === 'crash')
+        crosses.push(
+          'M' + r1(x - 5) + ' ' + r1(y - 24) + 'l10 9M' + r1(x + 5) + ' ' + r1(y - 24) + 'l-10 9',
+        );
       // Rim shot: struck through the head, running up to the right.
       if (k === 'rim') slashes.push('M' + r1(x - 10) + ' ' + r1(y + 8) + 'l20-16');
       if (v.led) led.push('M' + r1(x - 13) + ' ' + y + 'h26');
@@ -466,16 +484,19 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
 
   const L = ctx.loop;
   const loop: { d: string }[] = [];
-  if (L && L.a) {
-    const inA = L.a.barId === bar.id;
-    const inB = !!L.b && L.b.barId === bar.id;
-    if (inA || inB) {
-      const xa = inA ? r1(xOf(bar, L.a.s, br, n0)) : BL + 4;
-      const xb = inB && L.b ? r1(xOf(bar, L.b.s, br, n0)) : br - 4;
-      loop.push({
-        d: 'M' + xa + ' 6v6M' + xb + ' 6v6M' + Math.min(xa, xb) + ' 6H' + Math.max(xa, xb),
-      });
-    }
+  if (L && ctx.gi >= L.from && ctx.gi <= L.to) {
+    const opens = ctx.gi === L.from;
+    const closes = ctx.gi === L.to;
+    const xa = opens ? r1(xOf(bar, L.fromS, br, n0)) : BL + 4;
+    const xb = closes ? r1(xOf(bar, L.toS, br, n0)) : br - 4;
+    const lo = Math.min(xa, xb);
+    const hi = Math.max(xa, xb);
+    // Only tick the ends that are actually here; a bar in the middle carries
+    // the line straight through.
+    let d = 'M' + lo + ' 6H' + hi;
+    if (opens) d += 'M' + xa + ' 6v6';
+    if (closes) d += 'M' + xb + ' 6v6';
+    loop.push({ d });
   }
 
   const beats: BeatNum[] = [];
@@ -505,6 +526,7 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     ringSlash: ringSlash.join('') || 'M0 0',
     diamonds,
     hoops,
+    crosses: crosses.join('') || 'M0 0',
     slashes: slashes.join('') || 'M0 0',
     selBox,
     stems: stems.join('') || 'M0 0',

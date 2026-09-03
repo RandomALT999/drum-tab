@@ -166,24 +166,52 @@ export class App extends Component<Record<string, never>, AppState> {
     const compact = !!this.mq?.matches;
     if (compact !== this.state.compact) this.setState({ compact }, () => this.measure());
   };
-  private onVis = (): void => {
-    // Coming back from another app the context is often left suspended; without
-    // this the transport looks alive but nothing sounds.
-    if (document.visibilityState === 'visible') {
-      this.kit.resumeIfNeeded();
-      if (this.state.playing) this.kit.session(true);
-    }
+  /**
+   * Coming back from another app, a call, or just a spell in the background,
+   * the context is left somewhere other than running and every scheduled event
+   * is dropped — the transport looks alive and nothing sounds. Reviving may
+   * have to build a whole new context, which moves the clock, so anything
+   * playing is restarted onto it rather than left anchored to a t0 that no
+   * longer means anything.
+   */
+  private wake = (): void => {
+    if (document.visibilityState === 'hidden') return;
+    const wasPlaying = this.state.playing;
+    if (wasPlaying) this.kit.session(true);
+    if (this.kit.running) return;
+    void this.kit.revive().then(() => {
+      if (wasPlaying && this.state.playing) this.restart();
+    });
   };
-  /** iOS needs a real gesture before any sound will come out. */
-  private onFirstGesture = (): void => {
-    void this.kit.unlock();
-    window.removeEventListener('pointerdown', this.onFirstGesture);
-    window.removeEventListener('touchend', this.onFirstGesture);
+  /**
+   * iOS needs a real gesture before any sound will come out — and after an
+   * interruption it can need another one. So this stays subscribed rather than
+   * unhooking after the first: when the context is already running it costs a
+   * property read, and when it is not, a tap anywhere is the one thing most
+   * likely to be allowed to fix it.
+   */
+  private onGesture = (): void => {
+    if (this.kit.running) return;
+    void this.kit.unlock().then(() => this.wake());
   };
+
+  /**
+   * The library, authoritative and updated synchronously.
+   *
+   * React state mirrors this for rendering. Reading `this.state.lib` inside a
+   * handler can see a version React has not committed yet, so two edits in one
+   * tick both built on the same stale copy and the second silently discarded
+   * the first — which is how parts went missing, came back, or turned up as an
+   * older version of themselves. Nothing may read the library from state.
+   */
+  private libRef: Project[];
+  private curRef: string;
 
   constructor(props: Record<string, never>) {
     super(props);
     const { lib, curId, restored } = load();
+    this.libRef = lib;
+    this.curRef = curId;
     this.restored = restored;
     this.state = {
       view: 'edit',
@@ -223,7 +251,7 @@ export class App extends Component<Record<string, never>, AppState> {
   componentDidMount(): void {
     // Only persist the bundled demo. Writing on every mount meant a transient
     // read failure would immediately overwrite the user's sheets with a seed.
-    if (!this.restored) save(this.state.lib, this.state.curId);
+    if (!this.restored) save(this.libRef, this.curRef);
     this.measure();
     if (window.ResizeObserver) {
       this.ro = new ResizeObserver(() => this.measure());
@@ -237,7 +265,12 @@ export class App extends Component<Record<string, never>, AppState> {
     window.visualViewport?.addEventListener('resize', this.onResize);
     window.visualViewport?.addEventListener('scroll', this.onResize);
     window.addEventListener('keydown', this.onKey);
-    document.addEventListener('visibilitychange', this.onVis);
+    document.addEventListener('visibilitychange', this.wake);
+    // Safari restoring from the back/forward cache does not fire
+    // visibilitychange, and returning to a Home Screen app sometimes only
+    // raises focus.
+    window.addEventListener('pageshow', this.wake);
+    window.addEventListener('focus', this.wake);
     // Noteheads are font glyphs; re-render once the music font is ready so the
     // first paint isn't measured against a fallback.
     if (document.fonts?.load)
@@ -248,8 +281,8 @@ export class App extends Component<Record<string, never>, AppState> {
     this.mq = window.matchMedia('(max-height: 540px) and (orientation: landscape)');
     this.mq.addEventListener?.('change', this.onOri);
     if (this.mq.matches) this.setState({ compact: true });
-    window.addEventListener('pointerdown', this.onFirstGesture, { passive: true });
-    window.addEventListener('touchend', this.onFirstGesture, { passive: true });
+    window.addEventListener('pointerdown', this.onGesture, { passive: true });
+    window.addEventListener('touchend', this.onGesture, { passive: true });
     onUpdateReady(() => this.setState({ swUpdate: true }));
     void this.openShared();
   }
@@ -271,9 +304,11 @@ export class App extends Component<Record<string, never>, AppState> {
     window.visualViewport?.removeEventListener('resize', this.onResize);
     window.visualViewport?.removeEventListener('scroll', this.onResize);
     window.removeEventListener('keydown', this.onKey);
-    window.removeEventListener('pointerdown', this.onFirstGesture);
-    window.removeEventListener('touchend', this.onFirstGesture);
-    document.removeEventListener('visibilitychange', this.onVis);
+    window.removeEventListener('pointerdown', this.onGesture);
+    window.removeEventListener('touchend', this.onGesture);
+    document.removeEventListener('visibilitychange', this.wake);
+    window.removeEventListener('pageshow', this.wake);
+    window.removeEventListener('focus', this.wake);
     this.ro?.disconnect();
     this.mq?.removeEventListener?.('change', this.onOri);
     cancelAnimationFrame(this.settleRaf);
@@ -477,7 +512,7 @@ export class App extends Component<Record<string, never>, AppState> {
   /* ---------- project access ---------- */
 
   proj(): Project {
-    return this.state.lib.find((p) => p.id === this.state.curId) || this.state.lib[0];
+    return this.libRef.find((p) => p.id === this.curRef) || this.libRef[0];
   }
   curPart() {
     const p = this.proj();
@@ -501,33 +536,55 @@ export class App extends Component<Record<string, never>, AppState> {
   /* ---------- mutation ---------- */
 
   /**
+   * The only way the library changes. Updates the synchronous copy, persists,
+   * then tells React. Saving here rather than from the setState callback also
+   * closes the window where iOS kills a backgrounded app before the callback
+   * has run.
+   */
+  private commit(
+    lib: Project[],
+    curId: string = this.curRef,
+    extra?: Partial<AppState>,
+    after?: () => void,
+  ): void {
+    this.libRef = lib;
+    this.curRef = curId;
+    save(lib, curId);
+    this.setState({ ...(extra || {}), lib, curId } as Pick<AppState, 'lib' | 'curId'>, after);
+  }
+
+  /**
    * The single mutation funnel: deep-clone the current project, apply, bump
    * `updated`, write through. Nothing mutates persisted state in place — which
    * is also what makes undo a matter of keeping the pre-mutation copy.
    */
   edit(fn: (p: Project) => void, label?: string, coalesceKey?: string): void {
     const before = this.proj();
-    const lib = this.state.lib.map((p) => (p.id === this.state.curId ? clone(p) : p));
-    const p = lib.find((x) => x.id === this.state.curId);
+    const lib = this.libRef.map((p) => (p.id === this.curRef ? clone(p) : p));
+    const p = lib.find((x) => x.id === this.curRef);
     if (!p) return;
     fn(p);
     p.updated = Date.now();
     this.history.push(before, coalesceKey);
-    this.setState({ lib, canUndo: this.history.canUndo, canRedo: this.history.canRedo }, () => {
-      save(lib, this.state.curId);
-      // Rebuild after commit — reading this.state here would see the old lib.
-      if (this.state.playing) this.rebuild();
-    });
+    this.commit(
+      lib,
+      this.curRef,
+      { canUndo: this.history.canUndo, canRedo: this.history.canRedo },
+      () => {
+        if (this.state.playing) this.rebuild();
+      },
+    );
     if (label) this.flash(label);
   }
 
   private restoreProject(p: Project): void {
-    const lib = this.state.lib.map((x) => (x.id === this.state.curId ? p : x));
+    const lib = this.libRef.map((x) => (x.id === this.curRef ? p : x));
     const part = Math.min(this.state.part, p.parts.length - 1);
     const bar = Math.min(this.state.bar, p.parts[part].bars.length - 1);
-    this.setState(
+    this.commit(
+      lib,
+      this.curRef,
       {
-        lib,
         part,
         bar,
         sel: null,
@@ -536,7 +593,6 @@ export class App extends Component<Record<string, never>, AppState> {
         canRedo: this.history.canRedo,
       },
       () => {
-        save(lib, this.state.curId);
         if (this.state.playing) this.rebuild(true);
       },
     );
@@ -627,14 +683,10 @@ export class App extends Component<Record<string, never>, AppState> {
       this.flash('LINK NOT READABLE');
       return;
     }
-    const lib = [p, ...this.state.lib];
+    const lib = [p, ...this.libRef];
     this.history.clear(p.id);
-    this.setState(
-      { lib, curId: p.id, view: 'edit', part: 0, bar: 0, sel: null, loop: null },
-      () => {
-        save(lib, p.id);
-        this.flash('SHEET ADDED');
-      },
+    this.commit(lib, p.id, { view: 'edit', part: 0, bar: 0, sel: null, loop: null }, () =>
+      this.flash('SHEET ADDED'),
     );
   }
 
@@ -799,16 +851,45 @@ export class App extends Component<Record<string, never>, AppState> {
     const sc = this.state.view === 'play' ? this.scroller : this.pane;
     const el = this.barEls[barId];
     if (!sc || !el) return;
+    // Measured against the scroller, not via offsetTop. offsetTop is relative
+    // to the nearest positioned ancestor, which is the shell — so upright it
+    // carried the height of the title bar, the transport, the parts strip and
+    // the status band, and the bar landed that far off. Sideways it happened to
+    // agree, because the pane starts at x=0, which is why only portrait looked
+    // wrong.
+    const box = sc.getBoundingClientRect();
+    const b = el.getBoundingClientRect();
     if (this.state.compact) {
       // Landscape lays bars out left to right, so follow the playhead sideways.
       const max = sc.scrollWidth - sc.clientWidth;
-      const left = Math.max(0, Math.min(max, el.offsetLeft - sc.clientWidth * 0.28));
+      const left = Math.max(0, Math.min(max, sc.scrollLeft + b.left - box.left - box.width * 0.28));
       if (Math.abs(sc.scrollLeft - left) > 0.5) sc.scrollLeft = left;
       return;
     }
     const max = sc.scrollHeight - sc.clientHeight;
-    const top = Math.max(0, Math.min(max, el.offsetTop - sc.clientHeight * 0.3));
+    const top = Math.max(0, Math.min(max, sc.scrollTop + b.top - box.top - box.height * 0.3));
     if (Math.abs(sc.scrollTop - top) > 0.5) sc.scrollTop = top;
+  }
+
+  /**
+   * Where the loop sits in a given run of bars, as indices into it. The bracket
+   * has to be drawn across every bar between the two ends, and a bar only knows
+   * its own id — so the span is worked out once per screen, against whatever
+   * order that screen is showing.
+   */
+  loopRange(bars: Bar[]): { from: number; to: number; fromS: number; toS: number } | null {
+    const L = this.state.loop;
+    if (!L || !L.a) return null;
+    const ia = bars.findIndex((b) => b.id === L.a.barId);
+    if (ia < 0) return null;
+    const B = L.b;
+    if (!B) return { from: ia, to: ia, fromS: L.a.s, toS: L.a.s };
+    const ib = bars.findIndex((b) => b.id === B.barId);
+    if (ib < 0) return null;
+    // The ends can be set in either order.
+    return ia <= ib
+      ? { from: ia, to: ib, fromS: L.a.s, toS: B.s }
+      : { from: ib, to: ia, fromS: B.s, toS: L.a.s };
   }
 
   private async wakeOn(): Promise<void> {
@@ -1234,6 +1315,7 @@ export class App extends Component<Record<string, never>, AppState> {
   openProject = (id: string): void => {
     this.stop();
     this.history.clear(id);
+    this.curRef = id;
     this.setState(
       {
         curId: id,
@@ -1247,7 +1329,7 @@ export class App extends Component<Record<string, never>, AppState> {
         canUndo: false,
         canRedo: false,
       },
-      () => save(this.state.lib, this.state.curId),
+      () => save(this.libRef, this.curRef),
     );
   };
 
@@ -1276,22 +1358,17 @@ export class App extends Component<Record<string, never>, AppState> {
 
   createProject = (feel: Feel): void => {
     const np = newProj(feelBar(feel));
-    const lib = [np, ...this.state.lib];
+    const lib = [np, ...this.libRef];
     this.history.clear(np.id);
-    this.setState(
-      {
-        lib,
-        curId: np.id,
-        view: 'edit',
-        part: 0,
-        bar: 0,
-        sel: null,
-        loop: null,
-        canUndo: false,
-        canRedo: false,
-      },
-      () => save(lib, np.id),
-    );
+    this.commit(lib, np.id, {
+      view: 'edit',
+      part: 0,
+      bar: 0,
+      sel: null,
+      loop: null,
+      canUndo: false,
+      canRedo: false,
+    });
   };
 
   dupProject = (p: Project): void => {
@@ -1299,25 +1376,19 @@ export class App extends Component<Record<string, never>, AppState> {
     c.id = uid();
     c.title = p.title + ' copy';
     c.updated = Date.now();
-    const lib = [...this.state.lib, c];
-    this.setState({ lib }, () => save(lib, this.state.curId));
+    this.commit([...this.libRef, c]);
   };
 
   delProject = (p: Project): void => {
-    if (this.state.lib.length < 2) return;
-    const lib = this.state.lib.filter((y) => y.id !== p.id);
-    const curId = this.state.curId === p.id ? lib[0].id : this.state.curId;
-    if (curId !== this.state.curId) this.history.clear(curId);
-    this.setState(
-      {
-        lib,
-        curId,
-        sel: null,
-        canUndo: this.history.canUndo,
-        canRedo: this.history.canRedo,
-      },
-      () => save(lib, curId),
-    );
+    if (this.libRef.length < 2) return;
+    const lib = this.libRef.filter((y) => y.id !== p.id);
+    const curId = this.curRef === p.id ? lib[0].id : this.curRef;
+    if (curId !== this.curRef) this.history.clear(curId);
+    this.commit(lib, curId, {
+      sel: null,
+      canUndo: this.history.canUndo,
+      canRedo: this.history.canRedo,
+    });
   };
 
   /* ---------- sheets ---------- */

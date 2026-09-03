@@ -217,6 +217,13 @@ export function Staff({
         />
       ))}
       <path
+        d={b.crosses}
+        stroke="#ece7dd"
+        strokeWidth={play ? 1.9 : 1.7}
+        strokeLinecap="round"
+        fill="none"
+      />
+      <path
         d={b.slashes}
         stroke="#ece7dd"
         strokeWidth={play ? 2.1 : 1.9}
