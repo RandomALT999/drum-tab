@@ -1,4 +1,6 @@
 import { useState } from "react";
+import type { App } from "../App";
+import { BandRuler } from "./BandRuler";
 
 /**
  * What the device actually reports, rather than what we assume it reports.
@@ -56,7 +58,8 @@ function report(): string {
       ? `VVIEW   ${Math.round(vv.width)}x${Math.round(vv.height)} offset ${Math.round(vv.offsetLeft)},${Math.round(vv.offsetTop)} page ${Math.round(vv.pageLeft)},${Math.round(vv.pageTop)} scale ${vv.scale}`
       : "VVIEW   n/a",
     `INSETS  top=${inset("top")} right=${inset("right")} bottom=${inset("bottom")} left=${inset("left")}`,
-    `BAND    var=${d.style.getPropertyValue("--band") || "(unset)"} ` +
+    `BAND    top=${d.style.getPropertyValue("--band-top") || "(css)"} ` +
+      `fade=${d.style.getPropertyValue("--band-fade") || "(css)"} ` +
       `h=${h(band)} pad=${root ? getComputedStyle(root).paddingTop : "-"}`,
     `BOXES   rootTop=${top(root)} rootH=${h(root)} screenTop=${top(screenEl)}`,
     `GAP     ${gap} ${gap <= 8 ? "(viewport covers the screen — the band is ours to paint)" : "(iOS has inset us by this much and drawn its own band)"}`,
@@ -64,10 +67,11 @@ function report(): string {
   ].join("\n");
 }
 
-export function Diag() {
+export function Diag({ app }: { app: App }) {
   const [open, setOpen] = useState(false);
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
+  const [ruler, setRuler] = useState(false);
 
   const refresh = (): void => {
     setText(report());
@@ -76,6 +80,8 @@ export function Diag() {
 
   return (
     <div style={{ marginTop: 2 }}>
+      {ruler && <BandRuler app={app} onClose={() => setRuler(false)} />}
+
       <button
         onClick={() => {
           if (!open) refresh();
@@ -130,6 +136,20 @@ export function Diag() {
               {copied ? "COPIED" : "COPY"}
             </button>
             <button
+              onClick={() => setRuler(true)}
+              style={{
+                height: 36,
+                padding: "0 14px",
+                borderRadius: 9,
+                background: "#22222a",
+                font: "600 10px IBM Plex Mono,monospace",
+                letterSpacing: ".08em",
+                color: "rgba(236,231,221,.7)",
+              }}
+            >
+              BAND RULER
+            </button>
+            <button
               onClick={refresh}
               style={{
                 height: 36,
@@ -151,7 +171,8 @@ export function Diag() {
               marginTop: 8,
             }}
           >
-            RE-READ after rotating to catch what changed.
+            RE-READ after rotating. BAND RULER measures how far down the
+            screen iOS is blurring.
           </div>
         </div>
       )}

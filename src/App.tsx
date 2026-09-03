@@ -23,6 +23,7 @@ import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
 import { ACC_STACK, SIGS, V, VBH, VI, yOf } from './notation/constants';
+import { readFade, writeFade } from './model/band';
 import { BR_DEFAULT, canPlace, note0For, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
@@ -326,8 +327,6 @@ export class App extends Component<Record<string, never>, AppState> {
    */
   private bandPx = 0;
   private bandVar = '';
-  /** Depth iOS keeps frosting below the band. Mirrored in styles.css :root. */
-  private static readonly FADE = 60;
   private syncBand(): void {
     const nav = navigator as Navigator & { standalone?: boolean };
     const standalone =
@@ -344,19 +343,33 @@ export class App extends Component<Record<string, never>, AppState> {
     // one; being a few pixels generous costs nothing, being short leaves a
     // frosted sliver.
     const px = armed && Math.abs(gap) <= 8 ? this.bandPx || 62 : 0;
-    // iOS does not stop frosting at the edge of the band — it feathers about
-    // this much further down the page. Unlike the band, this margin is there
-    // in both of iOS's shapes: when it shortens the viewport instead, the
-    // feather lands on our first 60px rather than on its own strip. So it is
-    // gated on `armed` alone, and nothing legible may sit inside it.
-    const fade = armed ? App.FADE : 0;
-    const v = `calc(max(env(safe-area-inset-top, 0px), ${px}px) + ${fade}px)`;
+    // iOS does not stop frosting at the edge of the band — it feathers some
+    // way further down the page, and how far is not knowable from script: the
+    // effect is composited over the web view, so nothing we read back has been
+    // touched by it. The band ruler measures it by eye; this is the answer it
+    // saved. Unlike the band, the margin is there in both of iOS's shapes —
+    // when it shortens the viewport instead, the feather lands on our first
+    // pixels rather than on its own strip — so it is gated on `armed` alone.
+    const fade = armed ? readFade() : 0;
+    const top = `max(env(safe-area-inset-top, 0px), ${px}px)`;
+    const v = top + ' + ' + fade;
     // Writing it unconditionally would relayout on every resize callback, and
     // the pane's ResizeObserver lands right back here.
     if (v === this.bandVar) return;
     this.bandVar = v;
-    document.documentElement.style.setProperty('--band', v);
+    const s = document.documentElement.style;
+    s.setProperty('--band-top', top);
+    s.setProperty('--band-fade', fade + 'px');
   }
+
+  /** Adopt a clearance measured by the band ruler, and re-lay the app to it. */
+  setFade = (px: number): void => {
+    writeFade(px);
+    // syncBand short-circuits on an unchanged value, and the value it compares
+    // is the one it last wrote — which the store has just gone behind.
+    this.bandVar = '';
+    this.measure();
+  };
 
   private measure(): void {
     // Before anything is read: this sets the shell's top padding, so it decides

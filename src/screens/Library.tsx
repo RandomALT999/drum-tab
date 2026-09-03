@@ -202,7 +202,7 @@ export function Library({ app }: { app: App }) {
         Everything autosaves to this device.
       </div>
 
-      <Diag />
+      <Diag app={app} />
     </div>
   );
 }

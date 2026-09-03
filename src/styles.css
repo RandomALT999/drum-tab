@@ -81,11 +81,17 @@ textarea {
    Screen app, upright, on a phone-shaped screen. A browser tab, a tablet or a
    landscape phone all want the plain inset. */
 :root {
-  --band: env(safe-area-inset-top, 0px);
+  /* the band iOS draws */
+  --band-top: env(safe-area-inset-top, 0px);
+  /* how much further down it keeps frosting — measured with the band ruler in
+     the diagnostics panel, because script cannot see its own blurred pixels */
+  --band-fade: 0px;
+  --band: calc(var(--band-top) + var(--band-fade));
 }
 @media (display-mode: standalone) and (orientation: portrait) and (max-width: 500px) {
   :root {
-    --band: calc(max(env(safe-area-inset-top, 0px), 62px) + 60px);
+    --band-top: max(env(safe-area-inset-top, 0px), 62px);
+    --band-fade: 32px;
   }
 }
 
