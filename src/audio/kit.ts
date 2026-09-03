@@ -1,10 +1,48 @@
 import type { Articulation, VoiceId } from '../model/types';
+import { PACK_DIR, VOICE, bandFor, gainFor } from './pack';
+
+/** One decoded round robin, with where its sound actually starts. */
+interface Hit {
+  buf: AudioBuffer;
+  onset: number;
+}
 
 /**
- * The whole kit is synthesized — no audio files ship with the app.
+ * Every MP3 decoder pads the start of the stream, by up to ~1100 samples
+ * depending on the decoder — 25ms or so, which on a drum hit is the difference
+ * between tight and sloppy, and it differs between browsers so it cannot be
+ * baked in at build time. Finding the first sample that is actually loud
+ * enough to be the attack, and starting playback from there, makes the timing
+ * exact whoever decoded it.
+ */
+function onsetOf(buf: AudioBuffer): number {
+  const d = buf.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < d.length; i++) {
+    const v = Math.abs(d[i]);
+    if (v > peak) peak = v;
+  }
+  const thr = Math.max(peak * 0.02, 1e-4);
+  for (let i = 0; i < d.length; i++) {
+    if (Math.abs(d[i]) >= thr) {
+      // back off a touch: the threshold is crossed part-way up the transient
+      return Math.max(0, (i - 12) / buf.sampleRate);
+    }
+  }
+  return 0;
+}
+
+/**
+ * The kit plays recorded samples, and synthesises as a fallback.
+ *
+ * The pack is real percussion with velocity layers and round robins (see
+ * `scripts/build-kit.mjs`), fetched and decoded once the context exists. Until
+ * that finishes — and for any slot the pack turns out not to have — the
+ * original synthesised voices stand in, so the first tap after a cold start is
+ * never silent and a failed fetch costs sound quality rather than sound.
+ *
  * One master gain into the destination, plus a single 1.2s white-noise buffer
- * reused by every noise voice. All envelopes are setValueAtTime →
- * exponentialRampToValueAtTime.
+ * reused by every synthesised noise voice.
  */
 export class Kit {
   private ctx: AudioContext | null = null;
@@ -12,6 +50,22 @@ export class Kit {
   private noiseBuf: AudioBuffer | null = null;
   /** Everything scheduled but not yet finished, so a pause can cut it. */
   private live: { node: AudioScheduledSourceNode; gain: GainNode }[] = [];
+  /** slot → velocity bands → round robins. Empty until the pack decodes. */
+  private bank = new Map<string, Hit[][]>();
+  private turn = new Map<string, number>();
+  private loading = false;
+
+  /** What the diagnostics panel reports: slots, layers and round robins. */
+  get packState(): string {
+    if (!this.bank.size) return this.loading ? 'loading' : 'synth (no pack)';
+    let bands = 0;
+    let hits = 0;
+    this.bank.forEach((b) => {
+      bands += b.length;
+      b.forEach((r) => (hits += r.length));
+    });
+    return `${this.bank.size} slots, ${bands} layers, ${hits} samples`;
+  }
 
   /** Lazily creates (and resumes) the context. Must be reached from a gesture. */
   ac(): AudioContext {
@@ -30,7 +84,58 @@ export class Kit {
       this.noiseBuf = b;
     }
     if (this.ctx.state === 'suspended') void this.ctx.resume();
+    void this.load();
     return this.ctx;
+  }
+
+  /**
+   * Fetch and decode the pack. Runs once, off the back of whichever gesture
+   * created the context — decodeAudioData needs one, and the service worker
+   * has the files precached, so on an installed copy this never touches the
+   * network. Failures are per-file: one missing sample leaves that slot to the
+   * synthesiser rather than taking the pack down with it.
+   */
+  private async load(): Promise<void> {
+    if (this.loading || !this.ctx) return;
+    this.loading = true;
+    const ac = this.ctx;
+    const base = (import.meta.env.BASE_URL || '/') + PACK_DIR;
+    try {
+      const res = await fetch(base + 'pack.json');
+      if (!res.ok) throw new Error(String(res.status));
+      const manifest = (await res.json()) as Record<string, string[][]>;
+      const slots = await Promise.all(
+        Object.entries(manifest).map(async ([slot, bands]) => {
+          const decoded = await Promise.all(
+            bands.map((band) =>
+              Promise.all(
+                band.map(async (file): Promise<Hit | null> => {
+                  try {
+                    const r = await fetch(base + file);
+                    if (!r.ok) throw new Error(String(r.status));
+                    const buf = await ac.decodeAudioData(await r.arrayBuffer());
+                    return { buf, onset: onsetOf(buf) };
+                  } catch {
+                    return null;
+                  }
+                }),
+              ),
+            ),
+          );
+          // A band with nothing in it would be picked and play silence, so drop
+          // the empties rather than leaving a hole in the velocity range.
+          const bandsOk = decoded
+            .map((b) => b.filter((h): h is Hit => !!h))
+            .filter((b) => b.length > 0);
+          return [slot, bandsOk] as const;
+        }),
+      );
+      slots.forEach(([slot, bands]) => {
+        if (bands.length) this.bank.set(slot, bands);
+      });
+    } catch {
+      /* no pack — the synthesised kit carries on */
+    }
   }
 
   /**
@@ -182,9 +287,47 @@ export class Kit {
     o.stop(t + dur + 0.02);
   }
 
+  /**
+   * One recorded hit, or false if the pack cannot cover it.
+   *
+   * Round robins advance per band, so a run of identical eighths cycles takes
+   * instead of retriggering one recording — which is what makes a sampled hat
+   * sound played rather than looped.
+   */
+  private sample(slot: string, t: number, a: Articulation, gain: number, rate?: number): boolean {
+    const ac = this.ctx;
+    const bands = this.bank.get(slot);
+    if (!ac || !this.master || !bands || !bands.length) return false;
+    const b = bandFor(bands.length, a);
+    const band = bands[b];
+    const key = slot + b;
+    const i = (this.turn.get(key) ?? 0) % band.length;
+    this.turn.set(key, i + 1);
+    const { buf, onset } = band[i];
+
+    const s = ac.createBufferSource();
+    s.buffer = buf;
+    if (rate) s.playbackRate.value = rate;
+    const g = ac.createGain();
+    g.gain.value = gain * gainFor(a);
+    s.connect(g);
+    g.connect(this.master);
+    this.track(s, g);
+    s.start(t, onset);
+    return true;
+  }
+
   /** Schedules one drum hit on the audio clock. */
   hit(v: VoiceId, t: number, a: Articulation): void {
     this.ac();
+    const map = VOICE[v];
+    if (map) {
+      const slot = a === 'open' && map.open ? map.open : map.slot;
+      // 'open' names the slot rather than the layer, so once inside it the
+      // stroke is an ordinary one.
+      const art = a === 'open' ? 'normal' : a;
+      if (this.sample(slot, t, art, map.gain, map.rate)) return;
+    }
     const k = a === 'accent' ? 1.35 : a === 'ghost' ? 0.35 : 1;
     if (v === 'kick') {
       this.tone(t, 155, 45, 0.19, 0.95 * k);

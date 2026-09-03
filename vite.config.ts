@@ -28,8 +28,10 @@ export default defineConfig({
       includeAssets: ['apple-touch-icon-bone.png', 'favicon-bone.svg'],
       workbox: {
         // Fonts are large and immutable; make sure they land in the precache so
-        // noteheads never fall back to tofu when offline.
-        globPatterns: ['**/*.{js,css,html,svg,png,woff2,ttf}'],
+        // noteheads never fall back to tofu when offline. The kit's mp3s and
+        // its manifest belong here for the same reason — an installed app that
+        // has to reach the network to make a sound is not much use on a train.
+        globPatterns: ['**/*.{js,css,html,svg,png,woff2,ttf,mp3,json}'],
         maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
       },
       manifest: {

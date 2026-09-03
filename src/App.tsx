@@ -82,7 +82,7 @@ interface Gesture {
 }
 
 export class App extends Component<Record<string, never>, AppState> {
-  private kit = new Kit();
+  readonly kit = new Kit();
   private history = new History();
   private g: Gesture = {};
   private lastTap: { id: string; t: number } | null = null;

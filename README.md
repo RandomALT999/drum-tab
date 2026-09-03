@@ -47,6 +47,11 @@ and force-pushes the result to the `gh-pages` branch, which GitHub Pages serves
 No backend and no server state — everything lives in `localStorage` on the
 device, under the versioned keys `drumtab.lib.v7` / `drumtab.cur.v7`.
 
+- `public/kit/` — the sound pack: real recorded percussion with velocity
+  layers and round robins, built from the CC0 Versilian Community Sample
+  Library by `scripts/build-kit.mjs`. See `src/audio/NOTICE.md`. The
+  synthesised voices in `src/audio/kit.ts` remain the fallback.
+
 - `src/notation/` — the layout engine. `constants.ts` holds staff geometry and
   the glyph offsets, which are measured from Noto Music's rendered ink bounds
   rather than derived: a music font's advance widths do not centre glyphs for

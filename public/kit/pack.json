@@ -1,0 +1,93 @@
+{
+  "kick": [
+    [
+      "kick-0.mp3"
+    ],
+    [
+      "kick-1.mp3"
+    ],
+    [
+      "kick-2.mp3"
+    ]
+  ],
+  "snare": [
+    [
+      "snare-0a.mp3",
+      "snare-0b.mp3"
+    ],
+    [
+      "snare-1a.mp3",
+      "snare-1b.mp3"
+    ],
+    [
+      "snare-2a.mp3",
+      "snare-2b.mp3"
+    ]
+  ],
+  "hihat": [
+    [
+      "hihat-0a.mp3",
+      "hihat-0b.mp3"
+    ],
+    [
+      "hihat-1a.mp3",
+      "hihat-1b.mp3"
+    ],
+    [
+      "hihat-2a.mp3",
+      "hihat-2b.mp3"
+    ]
+  ],
+  "hihat.open": [
+    [
+      "hihat-open-0a.mp3",
+      "hihat-open-0b.mp3"
+    ]
+  ],
+  "ride": [
+    [
+      "ride-0.mp3"
+    ],
+    [
+      "ride-1.mp3"
+    ],
+    [
+      "ride-2.mp3"
+    ]
+  ],
+  "ride.bell": [
+    [
+      "ride-bell-0.mp3"
+    ]
+  ],
+  "crash": [
+    [
+      "crash-0.mp3"
+    ],
+    [
+      "crash-1.mp3"
+    ]
+  ],
+  "tom.hi": [
+    [
+      "tom-hi-0.mp3"
+    ],
+    [
+      "tom-hi-1.mp3"
+    ],
+    [
+      "tom-hi-2.mp3"
+    ]
+  ],
+  "tom.low": [
+    [
+      "tom-low-0.mp3"
+    ],
+    [
+      "tom-low-1.mp3"
+    ],
+    [
+      "tom-low-2.mp3"
+    ]
+  ]
+}

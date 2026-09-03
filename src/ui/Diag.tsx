@@ -28,7 +28,7 @@ function inset(side: "top" | "right" | "bottom" | "left"): number {
 
 const yn = (b: boolean): string => (b ? "yes" : "no");
 
-function report(): string {
+function report(app: App): string {
   const d = document.documentElement;
   const vv = window.visualViewport;
   const nav = navigator as Navigator & { standalone?: boolean };
@@ -48,6 +48,7 @@ function report(): string {
 
   return [
     `BUILD   ${__BUILD__}`,
+    `KIT     ${app.kit.packState}`,
     `SW      controlled=${yn(!!navigator.serviceWorker?.controller)}`,
     `MODE    dm-standalone=${yn(mm("(display-mode: standalone)"))} ` +
       `nav.standalone=${nav.standalone === undefined ? "n/a" : yn(!!nav.standalone)} ` +
@@ -77,7 +78,7 @@ export function Diag({ app }: { app: App }) {
   const [fit, setFit] = useState(false);
 
   const refresh = (): void => {
-    setText(report());
+    setText(report(app));
     setCopied(false);
   };
 
