@@ -1,5 +1,5 @@
 import type { Dynamic, Tech, VoiceId } from '../model/types';
-import { FAMILY, PACK_DIR, VOICE, bandFor, gainFor } from './pack';
+import { FAMILY, PACK_DIR, TRIM, VOICE, bandFor, gainFor } from './pack';
 
 /** One decoded round robin, with where its sound actually starts. */
 interface Hit {
@@ -376,7 +376,8 @@ export class Kit {
     // Put back the level difference normalising took out, for slots recorded
     // together — see FAMILY.
     const ref = FAMILY[slot];
-    const rel = ref ? (this.peak.get(slot) ?? 1) / (this.peak.get(ref) ?? 1) : 1;
+    const rel =
+      (ref ? (this.peak.get(slot) ?? 1) / (this.peak.get(ref) ?? 1) : 1) * (TRIM[slot] ?? 1);
 
     const s = ac.createBufferSource();
     s.buffer = buf;

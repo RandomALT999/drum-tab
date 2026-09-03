@@ -117,47 +117,63 @@ const SLOTS = {
     bands: [['HiHat_Close_rr1_Mid.wav', 'HiHat_Close_rr2_Mid.wav']],
   },
   /*
-   * The cymbals, re-sourced after measuring their spectral centroids — the
-   * first pass had them the wrong way round. Suspended Cymbal 2's stick hit
-   * sits at 5631Hz and Cymbal 1's at 4207Hz, so the bright one was on the
-   * crash line playing what sounded like a ride tap while the ride line got
-   * the darker cymbal. And Cymbal 1's bell came in at 3457Hz — the dullest
-   * thing in the kit, for the sound that should ping hardest.
+   * The cymbals, third attempt, and this time from what the recordings
+   * actually are rather than from what they are called.
    *
-   * So the ride, its bell and its crash all come off Suspended Cymbal 2, the
-   * higher cymbal, which also means crashing the ride is the same instrument
-   * as riding it. The crash line moves to real clash cymbals.
+   * Clash Cymbals are the orchestral pair struck together in two hands. They
+   * are a crash in the concert sense and nothing like the one bolted to a kit,
+   * which is a suspended cymbal hit hard with a stick — so those are gone.
+   *
+   * `hit_f`/`hit_fff` are not strikes either: their peak arrives 113-572ms
+   * after the sound starts, which is a mallet swell, not a stick. Only the
+   * `hit_stick_` files have a real attack (1-2ms).
+   *
+   * That leaves one usable stick set. Suspended Cymbal 2's is not it — its
+   * loudest layer measures duller and slower-attacked than its middle one, so
+   * hitting harder would have sounded softer. Cymbal 1's runs 3579 → 4207 →
+   * 4277Hz across pp/mp/f at a uniform 1-2ms, which is a well-behaved velocity
+   * set, and it is the only one.
+   *
+   * So both cymbals are that recording at different tape speeds — which is
+   * also the truth of it, since pitch is most of what separates a ride from a
+   * crash. Up for the ride: brighter and shorter, a defined tap. Down for the
+   * crash: bigger, longer, more wash. The bell keeps Cymbal 2's, the brighter
+   * of the two bells, lifted so it pings above the ride rather than under it.
    */
   ride: {
-    sec: 1.1,
+    sec: 0.95,
     rate: 32000,
-    src: IDIO + 'Suspended Cymbal 2/',
+    speed: 1.22,
+    src: IDIO + 'Suspended Cymbal 1/',
     bands: [
-      ['susCymb2_hit_stick_pp1.wav'],
-      ['susCymb2_hit_stick_mp1.wav'],
-      ['susCymb2_hit_stick_mf1.wav'],
+      ['susCymb1_hit_stick_pp1.wav'],
+      ['susCymb1_hit_stick_mp1.wav'],
+      ['susCymb1_hit_stick_f1.wav'],
     ],
   },
   'ride.bell': {
-    sec: 1.3,
+    sec: 1.2,
     rate: 32000,
+    speed: 1.15,
     src: IDIO + 'Suspended Cymbal 2/',
     bands: [['susCymb2_hit_bell_p1.wav'], ['susCymb2_hit_bell_f1.wav']],
   },
-  // Crashing the ride: the same cymbal, hit full rather than tapped.
+  // Crashing the ride: the same cymbal at the same pitch as the ride, hit
+  // hard and left to ring instead of being cut off after a tap.
   'ride.crash': {
-    sec: 1.9,
+    sec: 2.2,
     rate: 32000,
-    src: IDIO + 'Suspended Cymbal 2/',
-    bands: [['susCymb2_hit_mf1.wav'], ['susCymb2_hit_fff1.wav']],
+    speed: 1.22,
+    src: IDIO + 'Suspended Cymbal 1/',
+    bands: [['susCymb1_hit_stick_mp1.wav'], ['susCymb1_hit_stick_f1.wav']],
   },
-  // Clash cymbals — two cymbals struck together, which is a crash, rather
-  // than a suspended one tapped with a stick, which is a ride.
+  // The kit crash: a bigger, lower cymbal, hit hard and left to wash out.
   crash: {
-    sec: 2.4,
+    sec: 2.8,
     rate: 32000,
-    src: IDIO + 'Clash Cymbals 1/',
-    bands: [['cymbal_crash1_mf1.wav'], ['cymbal_crash1_ff2.wav']],
+    speed: 0.88,
+    src: IDIO + 'Suspended Cymbal 1/',
+    bands: [['susCymb1_hit_stick_mp1.wav'], ['susCymb1_hit_stick_f1.wav']],
   },
   'tom.hi': {
     sec: 0.6,
@@ -229,6 +245,10 @@ async function main() {
           '-r', String(spec.rate),
           '-b', '16',
           tmp,
+          // Tape-speed shift: resamples, so pitch and length move together —
+          // which is what separates a ride from a crash struck off the same
+          // recording. Up is brighter and shorter, down bigger and longer.
+          ...(spec.speed ? ['speed', String(spec.speed)] : []),
           // leading silence first, so the length cap measures from the attack
           'silence', '1', '0.001', '-55d',
           'trim', '0', String(spec.sec),

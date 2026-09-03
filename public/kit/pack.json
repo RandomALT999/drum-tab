@@ -71,7 +71,7 @@
       ]
     },
     "hihat.open": {
-      "peak": 0.2013,
+      "peak": 0.2014,
       "bands": [
         [
           "hihat-open-0a.mp3",
@@ -98,7 +98,7 @@
       ]
     },
     "ride": {
-      "peak": 0.0827,
+      "peak": 0.0561,
       "bands": [
         [
           "ride-0.mp3"
@@ -112,7 +112,7 @@
       ]
     },
     "ride.bell": {
-      "peak": 0.1363,
+      "peak": 0.1525,
       "bands": [
         [
           "ride-bell-0.mp3"
@@ -123,7 +123,7 @@
       ]
     },
     "ride.crash": {
-      "peak": 0.3572,
+      "peak": 0.0561,
       "bands": [
         [
           "ride-crash-0.mp3"
@@ -134,7 +134,7 @@
       ]
     },
     "crash": {
-      "peak": 0.541,
+      "peak": 0.0728,
       "bands": [
         [
           "crash-0.mp3"

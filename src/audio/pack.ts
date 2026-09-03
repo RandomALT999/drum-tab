@@ -55,13 +55,33 @@ export const VOICE: Record<
  * session, different mics, different gain — so those are the hand-set numbers
  * above.
  */
+/**
+ * Level a slot's recorded peak cannot speak for.
+ *
+ * The family ratio works because two slots are two different performances of
+ * the same instrument. Crashing the ride is the same *recording* as riding it,
+ * only left to ring instead of cut off after a tap — so their peaks are
+ * identical and the ratio says they are equally loud, which is wrong twice
+ * over. This is the part that has to be stated rather than measured.
+ */
+export const TRIM: Record<string, number> = {
+  'ride.crash': 1.9,
+  // The bell is the one cymbal sound that comes off a different instrument
+  // from the line it belongs to, so there is no shared session to read a ratio
+  // from — its raw peak would have put it 8.7dB over a ride tap. A bell rings
+  // out above the ride, but by about this much.
+  'ride.bell': 1.5,
+};
+
 export const FAMILY: Record<string, string> = {
   'snare.rim': 'snare',
   'snare.xstick': 'snare',
   'hihat.open': 'hihat',
   'hihat.half': 'hihat',
   hhfoot: 'hihat',
-  'ride.bell': 'ride',
+  // Not ride.bell: it is Suspended Cymbal 2 while the ride is Cymbal 1, and a
+  // peak ratio across two different recordings measures the mic gain, not the
+  // instrument. It takes a stated level instead — see TRIM.
   'ride.crash': 'ride',
 };
 
