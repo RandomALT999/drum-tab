@@ -1,5 +1,5 @@
-import type { Articulation, VoiceId } from '../model/types';
-import { PACK_DIR, VOICE, bandFor, gainFor } from './pack';
+import type { Dynamic, Tech, VoiceId } from '../model/types';
+import { FAMILY, PACK_DIR, VOICE, bandFor, gainFor } from './pack';
 
 /** One decoded round robin, with where its sound actually starts. */
 interface Hit {
@@ -52,6 +52,8 @@ export class Kit {
   private live: { node: AudioScheduledSourceNode; gain: GainNode }[] = [];
   /** slot → velocity bands → round robins. Empty until the pack decodes. */
   private bank = new Map<string, Hit[][]>();
+  /** slot → its peak before normalising, for balancing within a family. */
+  private peak = new Map<string, number>();
   private turn = new Map<string, number>();
   private loading = false;
 
@@ -103,9 +105,12 @@ export class Kit {
     try {
       const res = await fetch(base + 'pack.json');
       if (!res.ok) throw new Error(String(res.status));
-      const manifest = (await res.json()) as Record<string, string[][]>;
+      const manifest = (await res.json()) as {
+        slots: Record<string, { peak: number; bands: string[][] }>;
+      };
       const slots = await Promise.all(
-        Object.entries(manifest).map(async ([slot, bands]) => {
+        Object.entries(manifest.slots).map(async ([slot, spec]) => {
+          const bands = spec.bands;
           const decoded = await Promise.all(
             bands.map((band) =>
               Promise.all(
@@ -127,11 +132,13 @@ export class Kit {
           const bandsOk = decoded
             .map((b) => b.filter((h): h is Hit => !!h))
             .filter((b) => b.length > 0);
-          return [slot, bandsOk] as const;
+          return [slot, bandsOk, spec.peak] as const;
         }),
       );
-      slots.forEach(([slot, bands]) => {
-        if (bands.length) this.bank.set(slot, bands);
+      slots.forEach(([slot, bands, pk]) => {
+        if (!bands.length) return;
+        this.bank.set(slot, bands);
+        this.peak.set(slot, pk > 0 ? pk : 1);
       });
     } catch {
       /* no pack — the synthesised kit carries on */
@@ -294,22 +301,27 @@ export class Kit {
    * instead of retriggering one recording — which is what makes a sampled hat
    * sound played rather than looped.
    */
-  private sample(slot: string, t: number, a: Articulation, gain: number, rate?: number): boolean {
+  private sample(slot: string, t: number, d: Dynamic, gain: number, rate?: number): boolean {
     const ac = this.ctx;
     const bands = this.bank.get(slot);
     if (!ac || !this.master || !bands || !bands.length) return false;
-    const b = bandFor(bands.length, a);
+    const b = bandFor(bands.length, d);
     const band = bands[b];
     const key = slot + b;
     const i = (this.turn.get(key) ?? 0) % band.length;
     this.turn.set(key, i + 1);
     const { buf, onset } = band[i];
 
+    // Put back the level difference normalising took out, for slots recorded
+    // together — see FAMILY.
+    const ref = FAMILY[slot];
+    const rel = ref ? (this.peak.get(slot) ?? 1) / (this.peak.get(ref) ?? 1) : 1;
+
     const s = ac.createBufferSource();
     s.buffer = buf;
     if (rate) s.playbackRate.value = rate;
     const g = ac.createGain();
-    g.gain.value = gain * gainFor(a);
+    g.gain.value = gain * rel * gainFor(bands.length, d);
     s.connect(g);
     g.connect(this.master);
     this.track(s, g);
@@ -318,15 +330,16 @@ export class Kit {
   }
 
   /** Schedules one drum hit on the audio clock. */
-  hit(v: VoiceId, t: number, a: Articulation): void {
+  hit(v: VoiceId, t: number, a: Dynamic, tech: Tech = 'normal'): void {
     this.ac();
     const map = VOICE[v];
     if (map) {
-      const slot = a === 'open' && map.open ? map.open : map.slot;
-      // 'open' names the slot rather than the layer, so once inside it the
-      // stroke is an ordinary one.
-      const art = a === 'open' ? 'normal' : a;
-      if (this.sample(slot, t, art, map.gain, map.rate)) return;
+      // A technique names its own slot; the dynamic still picks the layer
+      // inside it. Falling back to the plain slot matters for a note whose
+      // technique the pack has no recording of.
+      const slot = (tech !== 'normal' && map.tech?.[tech]) || map.slot;
+      if (this.sample(slot, t, a, map.gain, map.rate)) return;
+      if (slot !== map.slot && this.sample(map.slot, t, a, map.gain, map.rate)) return;
     }
     const k = a === 'accent' ? 1.35 : a === 'ghost' ? 0.35 : 1;
     if (v === 'kick') {
@@ -336,9 +349,12 @@ export class Kit {
       this.noise(t, 0.15, 1400, 7000, 0.5 * k, 0.001);
       this.tone(t, 195, 150, 0.08, 0.35 * k, 'triangle');
     } else if (v === 'hihat') {
-      this.noise(t, a === 'open' ? 0.32 : 0.05, 8000, null, 0.34 * k, 0.001);
+      const ring = tech === 'open' ? 0.32 : tech === 'half' ? 0.16 : 0.05;
+      this.noise(t, ring, 8000, null, 0.34 * k, 0.001);
+    } else if (v === 'hhfoot') {
+      this.noise(t, 0.045, 7000, null, 0.16 * k, 0.001);
     } else if (v === 'ride') {
-      this.noise(t, a === 'open' ? 0.7 : 0.5, 6500, null, 0.16 * k, 0.001);
+      this.noise(t, tech === 'bell' ? 0.7 : 0.5, 6500, null, 0.16 * k, 0.001);
       this.tone(t, 760, 700, 0.4, 0.05 * k, 'square');
     } else if (v === 'crash') {
       this.noise(t, 1.15, 3200, null, 0.3 * k, 0.001);
@@ -370,7 +386,7 @@ export class Kit {
   }
 
   /** Preview a voice immediately (note placement, selection, drag release). */
-  audition(v: VoiceId, a: Articulation = 'normal'): void {
-    this.hit(v, this.ac().currentTime + 0.01, a);
+  audition(v: VoiceId, a: Dynamic = 'normal', tech: Tech = 'normal'): void {
+    this.hit(v, this.ac().currentTime + 0.01, a, tech);
   }
 }

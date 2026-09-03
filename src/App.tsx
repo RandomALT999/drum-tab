@@ -1,7 +1,8 @@
 import { Component } from 'react';
 import type { PointerEvent as RPointerEvent } from 'react';
 import type {
-  Articulation,
+  Dynamic,
+  Tech,
   Bar,
   Cursor,
   Drag,
@@ -41,7 +42,10 @@ export interface AppState {
   part: number;
   bar: number;
   dur: NoteValue;
-  art: Articulation;
+  /** dynamic for the next note placed, or of the selected one */
+  dyn: Dynamic;
+  /** technique for the next note placed, or of the selected one */
+  tech: Tech;
   sel: Selection | null;
   labels: boolean;
   met: boolean;
@@ -188,7 +192,8 @@ export class App extends Component<Record<string, never>, AppState> {
       part: 0,
       bar: 0,
       dur: 4,
-      art: 'normal',
+      dyn: 'normal',
+      tech: 'normal',
       sel: null,
       labels: true,
       met: false,
@@ -648,8 +653,8 @@ export class App extends Component<Record<string, never>, AppState> {
   private countTick(t: number, strong: boolean): void {
     this.kit.tick(t, strong, Math.max(this.state.metVol, 50) / 100);
   }
-  audition(v: VoiceId, a: Articulation = 'normal'): void {
-    this.kit.audition(v, a);
+  audition(v: VoiceId, a: Dynamic = 'normal', tech: Tech = 'normal'): void {
+    this.kit.audition(v, a, tech);
   }
 
   /* ---------- transport ---------- */
@@ -743,7 +748,7 @@ export class App extends Component<Record<string, never>, AppState> {
       const st = this.TL[this.idx];
       const when = this.t0 + this.pass * this.period + st.t;
       if (when > now + look) break;
-      st.ev.forEach((n) => this.kit.hit(n.v, when, n.a));
+      st.ev.forEach((n) => this.kit.hit(n.v, when, n.a, n.k || 'normal'));
       if (this.state.met && st.beatHead) this.click(when, st.beatIdx === 0);
       this.idx++;
       if (this.idx >= this.TL.length) {
@@ -998,9 +1003,13 @@ export class App extends Component<Record<string, never>, AppState> {
       if (!bar) return;
       // One note per voice per slot.
       bar.notes = bar.notes.filter((n) => !(n.v === v && n.s === s));
-      bar.notes.push({ id, v, s, d: st.dur, a: st.art });
+      // The palette's technique is a default, not a promise: it only applies
+      // to a drum that can be played that way, so tapping the kick with RIM
+      // still writes a plain kick rather than a note the pack cannot voice.
+      const k = this.techFor(v, st.tech);
+      bar.notes.push({ id, v, s, d: st.dur, a: st.dyn, ...(k ? { k } : {}) });
     });
-    if (!st.playing) this.audition(v, st.art);
+    if (!st.playing) this.audition(v, st.dyn, this.techFor(v, st.tech) || 'normal');
   }
 
   mutNote(
@@ -1042,15 +1051,50 @@ export class App extends Component<Record<string, never>, AppState> {
     this.setState({ dur: d });
   };
 
-  applyArt = (a: Articulation): void => {
+  /** `t` if this drum can be played that way, else null. */
+  techFor(v: VoiceId, t: Tech): Tech | null {
+    if (t === 'normal') return null;
+    return VI[v].tech?.includes(t) ? t : null;
+  }
+
+  /** Is `t` offerable — for the selected note, or for anything at all? */
+  techAllowed(t: Tech): boolean {
+    if (t === 'normal') return true;
+    const n = this.selNote();
+    if (n) return !!VI[n.v].tech?.includes(t);
+    return V.some((v) => v.tech?.includes(t));
+  }
+
+  applyDyn = (a: Dynamic): void => {
     const n = this.selNote();
     if (n && this.state.sel) {
       this.mutNote(this.state.sel.barId, n.id, (x) => void (x.a = a));
-      this.audition(n.v, a);
-      this.setState({ art: a, sel: null });
+      this.audition(n.v, a, n.k || 'normal');
+      this.setState({ dyn: a, sel: null });
       return;
     }
-    this.setState({ art: a });
+    this.setState({ dyn: a });
+  };
+
+  applyTech = (t: Tech): void => {
+    const n = this.selNote();
+    if (n && this.state.sel) {
+      if (!this.techAllowed(t)) {
+        this.flash('NOT ON ' + VI[n.v].nm.toUpperCase());
+        return;
+      }
+      // Tapping the technique a note already has takes it back off, so the row
+      // doubles as its own undo and there is no separate PLAIN button for it.
+      const next = n.k === t ? 'normal' : t;
+      this.mutNote(this.state.sel.barId, n.id, (x) => {
+        if (next === 'normal') delete x.k;
+        else x.k = next;
+      });
+      this.audition(n.v, n.a, next);
+      this.setState({ tech: next, sel: null });
+      return;
+    }
+    this.setState({ tech: this.state.tech === t ? 'normal' : t });
   };
 
   toggleRest = (): void => {
@@ -1173,9 +1217,10 @@ export class App extends Component<Record<string, never>, AppState> {
       this.setState({
         sel: { barId: bar.id, noteId: g.note.id },
         dur: g.note.d,
-        art: g.note.a,
+        dyn: g.note.a,
+        tech: g.note.k || 'normal',
       });
-      this.audition(g.note.v, g.note.a);
+      this.audition(g.note.v, g.note.a, g.note.k || 'normal');
     }
   };
 

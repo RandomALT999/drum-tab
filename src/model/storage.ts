@@ -17,13 +17,15 @@ export interface Loaded {
 }
 
 /**
- * Bars used to be able to sit on an eighth-resolution grid, which made
- * sixteenths impossible to place in them. Doubling the resolution is lossless —
- * every existing slot maps to an even slot in the finer grid.
+ * Brings a stored project onto the current shape. Runs on every load, from
+ * storage and from a share link, and every step is idempotent.
  */
-function migrate(p: Project): void {
+export function migrate(p: Project): void {
   p.parts?.forEach((pt) =>
     pt.bars?.forEach((b) => {
+      // Bars used to be able to sit on an eighth-resolution grid, which made
+      // sixteenths impossible to place in them. Doubling is lossless — every
+      // existing slot maps to an even slot in the finer grid.
       if (b.sub === 2) {
         b.sub = 4;
         b.notes.forEach((n) => (n.s *= 2));
@@ -32,6 +34,15 @@ function migrate(p: Project): void {
       // which cannot be drawn sensibly. Shorten such notes to a value that fits
       // where they already sit rather than moving them.
       b.notes.forEach((n) => (n.d = fitDur(b, n.s, n.d)));
+      // Dynamic and technique used to share one field, so 'open' arrived where
+      // a dynamic belongs. It meant the ring on a hi-hat and the bell on a
+      // ride — one value standing for two different techniques, which is part
+      // of why the axes were split.
+      b.notes.forEach((n) => {
+        if ((n.a as string) !== 'open') return;
+        n.a = 'normal';
+        n.k = n.v === 'ride' ? 'bell' : 'open';
+      });
     }),
   );
 }

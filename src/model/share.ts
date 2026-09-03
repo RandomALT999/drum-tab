@@ -1,5 +1,6 @@
 import type { Project } from './types';
 import { uid } from './factory';
+import { migrate } from './storage';
 
 /**
  * A whole sheet packed into a link, so it can be sent in any messaging app
@@ -61,7 +62,7 @@ export async function decodeSheet(s: string): Promise<Project | null> {
     if (!o || !Array.isArray(o.parts) || !o.parts.length) return null;
     // Fresh ids throughout: a shared sheet must not collide with the
     // recipient's own, and two people opening the same link must not clash.
-    return {
+    const p: Project = {
       id: uid(),
       title: String(o.t || 'Shared groove'),
       bpm: Math.max(30, Math.min(300, Number(o.b) || 92)),
@@ -78,6 +79,10 @@ export async function decodeSheet(s: string): Promise<Project | null> {
         })),
       })),
     };
+    // A link made by an older copy of the app carries the old note shape, and
+    // links outlive installs — someone can open one months later.
+    migrate(p);
+    return p;
   } catch {
     return null;
   }

@@ -150,6 +150,18 @@ export function Staff({
             {CH.headO}
           </text>
         ))}
+        {/* Bell: a diamond, drawn rather than set. Noto Music's diamond
+            noteheads sit in the same combining-mark corner of the block as the
+            accent did, and that one turned out to be unrenderable on its own —
+            not a lesson worth learning twice. */}
+        {b.diamonds.map((h, i) => (
+          <path
+            key={'dm' + i}
+            d={`M${h.x - 7} ${h.y}L${h.x} ${h.y - 5.8}L${h.x + 7} ${h.y}L${h.x} ${h.y + 5.8}Z`}
+            fill={h.c}
+            opacity={h.op}
+          />
+        ))}
         {/* drag ghosts */}
         {!play &&
           b.gn.map((h, i) => (
@@ -186,6 +198,31 @@ export function Staff({
       {b.rings.map((o, i) => (
         <circle key={i} cx={o.x} cy={o.y} r={4.6} stroke={o.c} strokeWidth={1.5} fill="none" />
       ))}
+      <path
+        d={b.ringSlash}
+        stroke="#ece7dd"
+        strokeWidth={play ? 1.7 : 1.5}
+        strokeLinecap="round"
+        fill="none"
+      />
+      {b.hoops.map((o, i) => (
+        <circle
+          key={i}
+          cx={o.x}
+          cy={o.y}
+          r={10.5}
+          stroke={o.c}
+          strokeWidth={play ? 1.7 : 1.5}
+          fill="none"
+        />
+      ))}
+      <path
+        d={b.slashes}
+        stroke="#ece7dd"
+        strokeWidth={play ? 2.1 : 1.9}
+        strokeLinecap="round"
+        fill="none"
+      />
       <path
         d={b.parens}
         stroke="rgba(236,231,221,.7)"

@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { App } from '../App';
 import { ACCENT, SAFE_BOTTOM } from '../config';
-import { CH, VI } from '../notation/constants';
+import { CH, TECHS, VI } from '../notation/constants';
 
 const glyph = (
   w: number,
@@ -37,11 +37,12 @@ export function Palette({ app }: { app: App }) {
   const compact = st.compact;
   const sn = app.selNote();
 
-  // The eight buttons are dual-purpose: with a note selected they edit it and
-  // reflect its values (so the row doubles as an inspector); with nothing
+  // The buttons are dual-purpose: with a note selected they edit it and
+  // reflect its values (so the rows double as an inspector); with nothing
   // selected they set the defaults for the next note placed.
   const dv = sn ? sn.d : st.dur;
-  const av = sn ? sn.a : st.art;
+  const av = sn ? sn.a : st.dyn;
+  const tv = sn ? sn.k || 'normal' : st.tech;
   const btn = (on: boolean) => ({
     background: on ? ACCENT : '#17171c',
     color: on ? '#0d0d10' : 'rgba(236,231,221,.72)',
@@ -247,7 +248,7 @@ export function Palette({ app }: { app: App }) {
           app.toggleRest,
         )}
         {cell(av === 'normal', 'PLAIN', glyph(11, 11, '0 0 9 9', -0.5, 6.7, 22, CH.headN), () =>
-          app.applyArt('normal'),
+          app.applyDyn('normal'),
         )}
         {cell(
           av === 'accent',
@@ -267,20 +268,61 @@ export function Palette({ app }: { app: App }) {
               fill="none"
             />
           </svg>,
-          () => app.applyArt('accent'),
+          () => app.applyDyn('accent'),
         )}
         {cell(
           av === 'ghost',
           'GHOST',
           <span style={{ font: '400 15px/1 IBM Plex Mono,monospace' }}>( )</span>,
-          () => app.applyArt('ghost'),
+          () => app.applyDyn('ghost'),
         )}
-        {cell(
-          av === 'open',
-          'OPEN',
-          <span style={{ font: '400 14px/1 IBM Plex Mono,monospace' }}>○</span>,
-          () => app.applyArt('open'),
-        )}
+      </div>
+
+      {/* Technique — a second axis, not more dynamics. A note can be an
+          accented rim shot, so these have to be their own row rather than
+          more entries in a single mutually-exclusive group. Shorter than the
+          row above: it is reached far less often than 1/8 or ACCENT. */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 5,
+          // stacked under the dynamics upright; beside them in landscape,
+          // where the palette is one row and height is the scarce thing
+          marginTop: compact ? 0 : 5,
+          // beside the durations rather than past the chips: the two rows that
+          // edit the note belong together
+          order: compact ? 1 : undefined,
+          flex: compact ? '1 1 auto' : undefined,
+          minWidth: 0,
+        }}
+      >
+        {TECHS.map((t) => {
+          const on = tv === t.id;
+          const ok = app.techAllowed(t.id);
+          return (
+            <button
+              key={t.id}
+              onClick={() => app.applyTech(t.id)}
+              aria-label={t.nm}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                height: compact ? 30 : 34,
+                borderRadius: 8,
+                display: 'grid',
+                placeItems: 'center',
+                font: '600 9px IBM Plex Mono,monospace',
+                letterSpacing: '.03em',
+                background: on ? ACCENT : '#17171c',
+                color: on ? '#0d0d10' : 'rgba(236,231,221,.72)',
+                // a technique this drum cannot be played with reads as unavailable
+                opacity: ok ? 1 : 0.32,
+              }}
+            >
+              {t.ab}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

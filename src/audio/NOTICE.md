@@ -17,14 +17,22 @@ Sources per slot:
 | slot | VCSL instrument |
 |---|---|
 | `kick` | Bass Drum 1 — `BDrumNew_hit_v2/v3/v5` |
-| `snare` | Snare Drum, Modern 1 — `Snare2_HitSN_v5/v7/v9`, both round robins |
+| `snare` | Snare Drum, Modern 3 — `Snare4_HitSN_v2/v4/v5`, both round robins |
+| `snare.rim` | Snare Drum, Modern 3 — `Snare4_rimshot_v2/v4` |
+| `snare.xstick` | Snare Drum, Modern 3 — `Snare4_Xstick_v2_rr1/rr2` |
 | `hihat` | Hi-Hat Cymbal — `HiHat_HitC_v2/v3/v4`, both round robins |
 | `hihat.open` | Hi-Hat Cymbal — `HiHat_HitO_rr1/rr2` |
+| `hihat.half` | Hi-Hat Cymbal — `HiHat_HitLoose_rr1/rr2` |
+| `hhfoot` | Hi-Hat Cymbal — `HiHat_Close_rr1/rr2` (the pedal chick) |
 | `ride` | Suspended Cymbal 1 — `hit_stick_pp/mp/f` |
 | `ride.bell` | Suspended Cymbal 1 — `hit_bell_mf` |
 | `crash` | Suspended Cymbal 2 — `hit_stick_mp/mf` |
 | `tom.hi` | Tom 1 Stick — `TomH_HitS_v2/v3/v4` |
 | `tom.low` | Tom 2 Stick — `TomL_HitS_v2/v3/v4` |
+
+Modern 3 is the snare because it is the only one in the library with a rim shot
+and a cross-stick alongside its plain hits — a rim shot recorded on a different
+drum than the notes around it is immediately obvious.
 
 `scripts/build-kit.mjs` regenerates the pack: it fetches the sources, trims the
 leading silence, caps each length, fades the cut, downmixes to mono, resamples,
@@ -32,6 +40,19 @@ peak-normalises **per slot** (one factor for all its layers, so the velocity
 differences survive) and encodes mono MP3 at 96kbps. It needs network, `ffmpeg`
 and `sox`. The output is committed, so a normal build never runs it.
 
-The mix balance lives in `src/audio/pack.ts`, not in the files — every slot is
-normalised to the same ceiling, so those gains are what stops a cymbal being as
-loud as a kick. Tune them there and no re-encoding is needed.
+Each slot's peak *before* normalising is kept in `pack.json`, because
+normalising is exactly what destroys the difference between a rim shot and a
+cross-stick. Within one instrument those peaks are comparable — same session,
+same mics — so the runtime uses the ratio to put the recorded balance back:
+
+| | vs its plain stroke |
+|---|---|
+| rim shot | +3.0dB |
+| cross-stick | −12.9dB |
+| open hi-hat | +0.5dB |
+| half-open | +1.6dB |
+| pedal chick | −10.0dB |
+| ride bell | +4.3dB |
+
+Across instruments the peaks say nothing, so drum-against-drum balance is the
+hand-set gains in `src/audio/pack.ts`. Tune those and no re-encoding is needed.

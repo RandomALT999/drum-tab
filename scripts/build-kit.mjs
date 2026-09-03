@@ -51,17 +51,37 @@ const SLOTS = {
     src: MEMB + 'Bass Drum 1/',
     bands: [['BDrumNew_hit_v2_rr1_Sum.wav'], ['BDrumNew_hit_v3_rr1_Sum.wav'], ['BDrumNew_hit_v5_rr1_Sum.wav']],
   },
-  // v3 came out 27dB under v9 — real, but the quiet end was inaudible against
-  // the rest of the kit. v5/v7/v9 keeps the dynamics without the dead band.
+  /*
+   * Modern 3 rather than Modern 1, which was the first choice: it is the only
+   * snare in the library with a rim shot and a cross-stick alongside its plain
+   * hits, so every articulation comes off the same drum. A rim shot recorded
+   * on a different snare than the notes around it is immediately obvious.
+   */
   snare: {
     sec: 0.42,
     rate: 32000,
-    src: MEMB + 'Snare Drum, Modern 1/',
+    src: MEMB + 'Snare Drum, Modern 3/',
     bands: [
-      ['Snare2_HitSN_v5_rr1_Mid.wav', 'Snare2_HitSN_v5_rr2_Mid.wav'],
-      ['Snare2_HitSN_v7_rr1_Mid.wav', 'Snare2_HitSN_v7_rr2_Mid.wav'],
-      ['Snare2_HitSN_v9_rr1_Mid.wav', 'Snare2_HitSN_v9_rr2_Mid.wav'],
+      ['Snare4_HitSN_v2_rr1_Mid.wav', 'Snare4_HitSN_v2_rr2_Mid.wav'],
+      ['Snare4_HitSN_v4_rr1_Mid.wav', 'Snare4_HitSN_v4_rr2_Mid.wav'],
+      ['Snare4_HitSN_v5_rr1_Mid.wav', 'Snare4_HitSN_v5_rr2_Mid.wav'],
     ],
+  },
+  'snare.rim': {
+    sec: 0.36,
+    rate: 32000,
+    src: MEMB + 'Snare Drum, Modern 3/',
+    bands: [
+      ['Snare4_rimshot_v2_rr1_Mid.wav', 'Snare4_rimshot_v2_rr2_Mid.wav'],
+      ['Snare4_rimshot_v4_rr1_Mid.wav', 'Snare4_rimshot_v4_rr2_Mid.wav'],
+    ],
+  },
+  // Cross-stick — the quiet one, stick laid across the head onto the rim.
+  'snare.xstick': {
+    sec: 0.3,
+    rate: 32000,
+    src: MEMB + 'Snare Drum, Modern 3/',
+    bands: [['Snare4_Xstick_v2_rr1_Mid.wav', 'Snare4_Xstick_v2_rr2_Mid.wav']],
   },
   hihat: {
     sec: 0.19,
@@ -80,6 +100,21 @@ const SLOTS = {
     rate: 32000,
     src: IDIO + 'Hi-Hat Cymbal/',
     bands: [['HiHat_HitO_rr1_Mid.wav', 'HiHat_HitO_rr2_Mid.wav']],
+  },
+  // Half-open: the loose stroke, shorter and dirtier than a full open hat.
+  'hihat.half': {
+    sec: 0.42,
+    rate: 32000,
+    src: IDIO + 'Hi-Hat Cymbal/',
+    bands: [['HiHat_HitLoose_rr1_Mid.wav', 'HiHat_HitLoose_rr2_Mid.wav']],
+  },
+  // The pedal "chick" — foot closing the hats, with no stick involved. Its own
+  // voice on the staff, below the kick, so it can sound under a hand stroke.
+  hhfoot: {
+    sec: 0.3,
+    rate: 32000,
+    src: IDIO + 'Hi-Hat Cymbal/',
+    bands: [['HiHat_Close_rr1_Mid.wav', 'HiHat_Close_rr2_Mid.wav']],
   },
   ride: {
     sec: 1.1,
@@ -200,12 +235,20 @@ async function main() {
       }
       bands.push(files);
     }
-    manifest[slot] = bands;
+    // The pre-normalising peak goes in the manifest because normalising throws
+    // away exactly the information needed to balance articulations of one
+    // instrument against each other. A cross-stick is 13dB under a plain snare
+    // hit as recorded; brought to the same ceiling and played at the same gain
+    // it would be as loud as a full stroke, which is nonsense. Peaks are only
+    // comparable inside one instrument — same session, same mics — so the
+    // runtime uses the ratio within a family and nothing across families.
+    manifest[slot] = { peak: Number(hottest.toFixed(4)), bands };
     console.log(`${slot.padEnd(12)} ${bands.flat().length} files  peak ${hottest.toFixed(3)}  gain ${gainDb.toFixed(1)}dB`);
   }
 
-  console.log(`\n${Object.values(manifest).flat(2).length} files, ${(bytes / 1024).toFixed(0)}KB, ${seconds.toFixed(1)}s of audio`);
-  writeFileSync(join(OUT, 'pack.json'), JSON.stringify(manifest, null, 2) + '\n');
+  const files = Object.values(manifest).flatMap((s) => s.bands.flat()).length;
+  console.log(`\n${files} files, ${(bytes / 1024).toFixed(0)}KB, ${seconds.toFixed(1)}s of audio`);
+  writeFileSync(join(OUT, 'pack.json'), JSON.stringify({ slots: manifest }, null, 2) + '\n');
 }
 
 await main();

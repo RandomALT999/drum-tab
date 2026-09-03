@@ -1,7 +1,30 @@
 export type VoiceId =
-  'crash' | 'hihat' | 'ride' | 'hitom' | 'midtom' | 'snare' | 'floor' | 'kick';
+  | 'crash'
+  | 'hihat'
+  | 'ride'
+  | 'hitom'
+  | 'midtom'
+  | 'snare'
+  | 'floor'
+  | 'kick'
+  /** the pedal "chick" — its own line below the staff, as charts print it */
+  | 'hhfoot';
 
-export type Articulation = 'normal' | 'accent' | 'ghost' | 'open';
+/** How hard the stroke is. */
+export type Dynamic = 'normal' | 'accent' | 'ghost';
+
+/**
+ * How the stroke is made. Deliberately a separate axis from the dynamic: a rim
+ * shot can be accented and a cross-stick can be ghosted, and the single
+ * articulation field this replaced could express only one of the two at a time.
+ */
+export type Tech = 'normal' | 'open' | 'half' | 'bell' | 'rim' | 'xstick';
+
+/**
+ * The pre-split shape, where one field carried both axes. Only saved sheets and
+ * old share links still speak it; `migrate()` moves them onto the pair.
+ */
+export type Articulation = Dynamic | 'open';
 
 /** Note value: 4 = quarter, 8 = eighth, 16 = sixteenth. */
 export type NoteValue = 4 | 8 | 16;
@@ -14,8 +37,10 @@ export interface Note {
   s: number;
   /** note value */
   d: NoteValue;
-  /** articulation */
-  a: Articulation;
+  /** dynamic */
+  a: Dynamic;
+  /** technique; absent is a plain stroke */
+  k?: Tech;
   rest?: boolean;
 }
 
@@ -58,8 +83,8 @@ export interface Voice {
   up: 0 | 1;
   /** needs a ledger line */
   led?: 1;
-  /** supports the OPEN articulation */
-  ring?: 1;
+  /** techniques this drum can actually be played with */
+  tech?: Tech[];
 }
 
 /** `{barId, noteId}` — the currently selected note. */

@@ -140,7 +140,16 @@ export interface BarRender {
   gn: { x: number; y: number }[];
   gx: { x: number; y: number }[];
   accents: { d: string; c: string }[];
+  /** open hi-hat: the small circle above the note */
   rings: Mark[];
+  /** half-open: a stroke through that circle */
+  ringSlash: string;
+  /** bell: a diamond drawn in place of the notehead */
+  diamonds: Head[];
+  /** cross-stick: a circle around the notehead */
+  hoops: Mark[];
+  /** rim shot: a stroke through the notehead */
+  slashes: string;
   selBox: { x: number; y: number }[];
   stems: string;
   stemsHot: string;
@@ -215,6 +224,10 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
   const accents: { d: string; c: string }[] = [];
   const accTier = new Map<string, number>();
   const rings: Mark[] = [];
+  const ringSlash: string[] = [];
+  const diamonds: Head[] = [];
+  const hoops: Mark[] = [];
+  const slashes: string[] = [];
   const selBox: { x: number; y: number }[] = [];
   const stems: string[] = [];
   const stemsHot: string[] = [];
@@ -234,10 +247,24 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
       const x = xOf(bar, n.s, br, n0);
       const c = n.s === hot ? acc : IV;
       const op = n.a === 'ghost' ? 0.6 : 1;
-      if (v.hd === 'o') oh.push({ x: r1(x - ODX), y: r1(y + ODY), c, op });
+      // Techniques are only honoured on drums that can be played that way; a
+      // stored note can outlive the voice it was written for.
+      const k = n.k && v.tech?.includes(n.k) ? n.k : 'normal';
+      // The bell takes a diamond, so it replaces the notehead rather than
+      // decorating it. Everything else is a mark on top of the usual head.
+      if (k === 'bell') diamonds.push({ x: r1(x), y: r1(y), c, op });
+      else if (v.hd === 'o') oh.push({ x: r1(x - ODX), y: r1(y + ODY), c, op });
       else if (v.hd === 'x') xh.push({ x: r1(x - XDX), y: r1(y + XDY), c, op });
       else nh.push({ x: r1(x - NDX), y: r1(y + NDY), c, op });
-      if (n.a === 'open' && v.ring) rings.push({ x: r1(x), y: r1(y - 13), c });
+      if (k === 'open' || k === 'half') rings.push({ x: r1(x), y: r1(y - 13), c });
+      // Half-open is the open circle struck through — the conventional mark,
+      // and it reads at a glance next to a fully open one.
+      if (k === 'half')
+        ringSlash.push('M' + r1(x - 6.4) + ' ' + r1(y - 7.4) + 'l12.8-11.2');
+      // Cross-stick: the notehead ringed. Radius clears a notehead at 60px.
+      if (k === 'xstick') hoops.push({ x: r1(x), y: r1(y), c });
+      // Rim shot: struck through the head, running up to the right.
+      if (k === 'rim') slashes.push('M' + r1(x - 10) + ' ' + r1(y + 8) + 'l20-16');
       if (v.led) led.push('M' + r1(x - 13) + ' ' + y + 'h26');
       if (n.a === 'accent') {
         // Drawn, not set: U+1D17B is a combining mark with zero advance, which
@@ -475,6 +502,10 @@ export function buildBar(bar: Bar, ctx: LayoutCtx): BarRender {
     gx,
     accents,
     rings,
+    ringSlash: ringSlash.join('') || 'M0 0',
+    diamonds,
+    hoops,
+    slashes: slashes.join('') || 'M0 0',
     selBox,
     stems: stems.join('') || 'M0 0',
     stemsHot: stemsHot.join('') || 'M0 0',

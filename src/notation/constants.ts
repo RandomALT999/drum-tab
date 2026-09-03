@@ -1,4 +1,4 @@
-import type { Voice, VoiceId } from '../model/types';
+import type { Tech, Voice, VoiceId } from '../model/types';
 
 /* Eight voices on a standard percussion staff, in conventional positions:
    crash on the ledger above, hi-hat in the space above, ride on the top line,
@@ -6,13 +6,25 @@ import type { Voice, VoiceId } from '../model/types';
    together; the kick stems down as a second voice. */
 export const V: Voice[] = [
   { id: 'crash', ab: 'CR', nm: 'Crash', st: -2, hd: 'x', up: 1, led: 1 },
-  { id: 'hihat', ab: 'HH', nm: 'Hi-Hat', st: -1, hd: 'x', up: 1, ring: 1 },
-  { id: 'ride', ab: 'RD', nm: 'Ride', st: 0, hd: 'o', up: 1, ring: 1 },
+  { id: 'hihat', ab: 'HH', nm: 'Hi-Hat', st: -1, hd: 'x', up: 1, tech: ['open', 'half'] },
+  { id: 'ride', ab: 'RD', nm: 'Ride', st: 0, hd: 'o', up: 1, tech: ['bell'] },
   { id: 'hitom', ab: 'HT', nm: 'High Tom', st: 1, hd: 'n', up: 1 },
   { id: 'midtom', ab: 'MT', nm: 'Mid Tom', st: 2, hd: 'n', up: 1 },
-  { id: 'snare', ab: 'SN', nm: 'Snare', st: 3, hd: 'n', up: 1 },
+  { id: 'snare', ab: 'SN', nm: 'Snare', st: 3, hd: 'n', up: 1, tech: ['rim', 'xstick'] },
   { id: 'floor', ab: 'FT', nm: 'Floor Tom', st: 5, hd: 'n', up: 1 },
   { id: 'kick', ab: 'BD', nm: 'Kick', st: 7, hd: 'n', up: 0 },
+  /* Below the bottom line, stemmed down with the kick — both are feet, and
+     drum charts put them in the same voice so they can sound together. */
+  { id: 'hhfoot', ab: 'HF', nm: 'Hi-Hat Foot', st: 9, hd: 'x', up: 0 },
+];
+
+/** The technique row of the palette, in the order it is drawn. */
+export const TECHS: { id: Tech; ab: string; nm: string }[] = [
+  { id: 'open', ab: 'OPEN', nm: 'Open' },
+  { id: 'half', ab: 'HALF', nm: 'Half-open' },
+  { id: 'bell', ab: 'BELL', nm: 'Bell' },
+  { id: 'rim', ab: 'RIM', nm: 'Rim shot' },
+  { id: 'xstick', ab: 'X-STK', nm: 'Cross-stick' },
 ];
 
 export const VI: Record<VoiceId, Voice> = Object.fromEntries(V.map((v) => [v.id, v])) as Record<
