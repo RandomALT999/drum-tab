@@ -37,3 +37,35 @@ export function writeFade(px: number | null): void {
     /* private mode — the session keeps whatever is already on :root */
   }
 }
+
+/**
+ * Extra height the app takes past the bottom of its own viewport.
+ *
+ * `apple-mobile-web-app-status-bar-style: black-translucent` draws the page
+ * from y=0 across the whole screen but can leave the layout viewport short by
+ * the height of the band, which strands a strip along the bottom that no
+ * percentage height reaches. Whether that strip is painted at all is not
+ * something script can ask, so — like the fade — it is measured on the glass
+ * and stored here. 0 means the viewport already reaches the screen.
+ */
+const EXTRA_KEY = 'drumtab.vhextra.v1';
+
+/** Nothing iOS holds back is bigger than a status bar. */
+export const MAX_EXTRA = 200;
+
+export function readExtra(): number {
+  try {
+    const n = Number(localStorage.getItem(EXTRA_KEY));
+    return Number.isFinite(n) ? Math.max(0, Math.min(MAX_EXTRA, Math.round(n))) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+export function writeExtra(px: number): void {
+  try {
+    localStorage.setItem(EXTRA_KEY, String(Math.max(0, Math.min(MAX_EXTRA, Math.round(px)))));
+  } catch {
+    /* private mode — the session keeps whatever is already on :root */
+  }
+}

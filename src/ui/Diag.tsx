@@ -1,6 +1,7 @@
 import { useState } from "react";
 import type { App } from "../App";
 import { BandRuler } from "./BandRuler";
+import { ScreenFit } from "./ScreenFit";
 
 /**
  * What the device actually reports, rather than what we assume it reports.
@@ -60,6 +61,7 @@ function report(): string {
     `INSETS  top=${inset("top")} right=${inset("right")} bottom=${inset("bottom")} left=${inset("left")}`,
     `BAND    top=${d.style.getPropertyValue("--band-top") || "(css)"} ` +
       `fade=${d.style.getPropertyValue("--band-fade") || "(css)"} ` +
+      `extra=${d.style.getPropertyValue("--vh-extra") || "(css)"} ` +
       `h=${h(band)} pad=${root ? getComputedStyle(root).paddingTop : "-"}`,
     `BOXES   rootTop=${top(root)} rootH=${h(root)} screenTop=${top(screenEl)}`,
     `GAP     ${gap} ${gap <= 8 ? "(viewport covers the screen — the band is ours to paint)" : "(iOS has inset us by this much and drawn its own band)"}`,
@@ -72,6 +74,7 @@ export function Diag({ app }: { app: App }) {
   const [text, setText] = useState("");
   const [copied, setCopied] = useState(false);
   const [ruler, setRuler] = useState(false);
+  const [fit, setFit] = useState(false);
 
   const refresh = (): void => {
     setText(report());
@@ -81,6 +84,7 @@ export function Diag({ app }: { app: App }) {
   return (
     <div style={{ marginTop: 2 }}>
       {ruler && <BandRuler app={app} onClose={() => setRuler(false)} />}
+      {fit && <ScreenFit app={app} onClose={() => setFit(false)} />}
 
       <button
         onClick={() => {
@@ -115,7 +119,7 @@ export function Diag({ app }: { app: App }) {
           >
             {text}
           </pre>
-          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 8 }}>
             <button
               onClick={() => {
                 void navigator.clipboard?.writeText(text).then(
@@ -134,6 +138,20 @@ export function Diag({ app }: { app: App }) {
               }}
             >
               {copied ? "COPIED" : "COPY"}
+            </button>
+            <button
+              onClick={() => setFit(true)}
+              style={{
+                height: 36,
+                padding: "0 14px",
+                borderRadius: 9,
+                background: "#22222a",
+                font: "600 10px IBM Plex Mono,monospace",
+                letterSpacing: ".08em",
+                color: "rgba(236,231,221,.7)",
+              }}
+            >
+              SCREEN FIT
             </button>
             <button
               onClick={() => setRuler(true)}
@@ -171,8 +189,8 @@ export function Diag({ app }: { app: App }) {
               marginTop: 8,
             }}
           >
-            RE-READ after rotating. BAND RULER measures how far down the
-            screen iOS is blurring.
+            RE-READ after rotating. BAND RULER measures how far iOS blurs
+            down the top; SCREEN FIT whether there is screen below the bottom.
           </div>
         </div>
       )}

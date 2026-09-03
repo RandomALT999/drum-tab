@@ -23,7 +23,7 @@ import { Kit } from './audio/kit';
 import { buildTimeline } from './audio/timeline';
 import type { Step } from './audio/timeline';
 import { ACC_STACK, SIGS, V, VBH, VI, yOf } from './notation/constants';
-import { readFade, writeFade } from './model/band';
+import { readExtra, readFade, writeExtra, writeFade } from './model/band';
 import { BR_DEFAULT, canPlace, note0For, slotW, slotsFor, xOf } from './notation/layout';
 import { ACCENT, SHOW_BEAT_NUMBERS } from './config';
 import { Library } from './screens/Library';
@@ -360,7 +360,17 @@ export class App extends Component<Record<string, never>, AppState> {
     const s = document.documentElement.style;
     s.setProperty('--band-top', top);
     s.setProperty('--band-fade', fade + 'px');
+    // Only where iOS is capable of shortening the viewport under us, and never
+    // by more than it has actually held back.
+    s.setProperty('--vh-extra', (armed ? Math.min(readExtra(), Math.max(0, gap)) : 0) + 'px');
   }
+
+  /** Adopt the screen the fit test found below the viewport. */
+  setExtra = (px: number): void => {
+    writeExtra(px);
+    this.bandVar = '';
+    this.measure();
+  };
 
   /** Adopt a clearance measured by the band ruler, and re-lay the app to it. */
   setFade = (px: number): void => {

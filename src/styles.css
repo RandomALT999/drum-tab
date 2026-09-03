@@ -55,6 +55,14 @@ body {
   user-select: none;
   -webkit-touch-callout: none;
 }
+/* The one box allowed to exceed the viewport, and only by what the screen-fit
+   test found the screen still showing below it. Declared after the shorthand
+   above so it wins on order; body, #root and the shell all take their 100% from
+   here, so extending this extends the app. */
+html {
+  height: calc(100% + var(--vh-extra, 0px));
+}
+
 /* …but real text fields still need to be selectable. */
 input,
 textarea {
@@ -87,6 +95,10 @@ textarea {
      the diagnostics panel, because script cannot see its own blurred pixels */
   --band-fade: 0px;
   --band: calc(var(--band-top) + var(--band-fade));
+  /* Screen the viewport does not cover, along the bottom. Measured with the
+     screen-fit test, because whether iOS paints down there is not something
+     script can ask. Nearly always 0. */
+  --vh-extra: 0px;
 }
 @media (display-mode: standalone) and (orientation: portrait) and (max-width: 500px) {
   :root {
@@ -114,7 +126,7 @@ textarea {
      rule that copes with auto-hiding toolbars — sizing to 100% there would put
      the note palette behind Safari's toolbar, out of reach. */
   height: 100vh;
-  height: 100dvh;
+  height: calc(100dvh + var(--vh-extra, 0px));
   max-height: 100%;
   overflow: hidden;
 }
