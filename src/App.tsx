@@ -326,6 +326,8 @@ export class App extends Component<Record<string, never>, AppState> {
    */
   private bandPx = 0;
   private bandVar = '';
+  /** Depth iOS keeps frosting below the band. Mirrored in styles.css :root. */
+  private static readonly FADE = 60;
   private syncBand(): void {
     const nav = navigator as Navigator & { standalone?: boolean };
     const standalone =
@@ -342,7 +344,13 @@ export class App extends Component<Record<string, never>, AppState> {
     // one; being a few pixels generous costs nothing, being short leaves a
     // frosted sliver.
     const px = armed && Math.abs(gap) <= 8 ? this.bandPx || 62 : 0;
-    const v = px ? `max(env(safe-area-inset-top, 0px), ${px}px)` : 'env(safe-area-inset-top, 0px)';
+    // iOS does not stop frosting at the edge of the band — it feathers about
+    // this much further down the page. Unlike the band, this margin is there
+    // in both of iOS's shapes: when it shortens the viewport instead, the
+    // feather lands on our first 60px rather than on its own strip. So it is
+    // gated on `armed` alone, and nothing legible may sit inside it.
+    const fade = armed ? App.FADE : 0;
+    const v = `calc(max(env(safe-area-inset-top, 0px), ${px}px) + ${fade}px)`;
     // Writing it unconditionally would relayout on every resize callback, and
     // the pane's ResizeObserver lands right back here.
     if (v === this.bandVar) return;

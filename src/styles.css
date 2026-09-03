@@ -72,6 +72,23 @@ textarea {
   height: 100%;
 }
 
+/* How far down the page the status bar / Dynamic Island reaches — the band
+   itself plus the margin below it that iOS frosts.
+
+   App.syncBand() refines this from measured geometry, but it has to have a
+   real value before a single frame is painted, so the same answer is worked
+   out here in media queries. The conditions are syncBand()'s, in CSS: a Home
+   Screen app, upright, on a phone-shaped screen. A browser tab, a tablet or a
+   landscape phone all want the plain inset. */
+:root {
+  --band: env(safe-area-inset-top, 0px);
+}
+@media (display-mode: standalone) and (orientation: portrait) and (max-width: 500px) {
+  :root {
+    --band: calc(max(env(safe-area-inset-top, 0px), 62px) + 60px);
+  }
+}
+
 /* Deliberately NOT position:fixed. iOS places a fixed element against the
    *layout* viewport, so when a rotation leaves the visual viewport offset the
    whole shell appears shifted — and scrollTo(0,0) cannot clear that, because
@@ -81,11 +98,11 @@ textarea {
 .app-root {
   position: relative;
   width: 100%;
-  /* Same value as the strip, so the app starts exactly where the band ends —
-     and, more importantly, so it lands in the same place on the screen whether
-     or not iOS has shortened the viewport for us. That difference is what made
-     a rotation appear to nudge everything down. */
-  padding-top: var(--band, env(safe-area-inset-top, 0px));
+  /* Same value as the strip, so the app starts below everything iOS treats as
+     status-bar territory — and, more importantly, so it lands in the same place
+     on the screen whether or not iOS has shortened the viewport for us. That
+     difference is what made a rotation appear to nudge everything down. */
+  padding-top: var(--band);
   /* Dynamic viewport is the BASE, not the exception. An engine that does not
      evaluate `display-mode` skips the override below, and it must land on the
      rule that copes with auto-hiding toolbars — sizing to 100% there would put
@@ -105,27 +122,31 @@ textarea {
 }
 
 /* From iOS 26 a Home Screen web app runs edge-to-edge and the system paints
-   its own layer across the status bar / Dynamic Island. It tints that layer with
-   the background-color of a fixed or sticky element sitting at the top edge; if
-   it finds none, it falls back to frosting whatever page pixels are behind the
-   band, which is the smear you see when content scrolls under it.
+   its own layer across the status bar / Dynamic Island, frosting the page
+   pixels behind it.
 
-   So this strip exists to be sampled. Flat, fully opaque, no gradient and no
-   backdrop-filter — any of those send it back to the frosted path. It is also
-   the one place the shell's no-position:fixed rule does not apply: a rotation
-   that offsets a fixed box would move this one too, but it is a single flat
-   colour over a body of the same colour, so there is nothing to see. */
+   The band region itself came out clean once this strip was pinned there, but
+   the effect does not stop at the safe-area inset: it feathers roughly another
+   60px down the page, which is what was smearing the title, the ☰ and the PLAY
+   button while the row below them stayed sharp. Sampling an opaque element is
+   supposed to replace the frosting with a flat tint; here it did not, so the
+   strip's job is the blunter one of making sure the whole frosted depth has
+   nothing but one flat colour behind it. Blurring a flat colour is that colour.
+
+   Flat, fully opaque, no gradient and no backdrop-filter. This is also the one
+   place the shell's no-position:fixed rule does not apply: a rotation that
+   offsets a fixed box would move this one too, but it is a single flat colour
+   over a body of the same colour, so there is nothing to see. */
 .status-band {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  /* --band is measured in JS, because env() cannot be trusted here: with
-     `status-bar-style: black` iOS tells the engine the viewport starts below
-     the status bar and reports a zero inset, then paints its band over the
-     page anyway. App.syncBand() works the real height out from the geometry
-     and writes it here; env() is only the pre-script fallback. */
-  height: var(--band, env(safe-area-inset-top, 0px));
+  /* Band plus frosted margin — see the :root block above. env() alone cannot
+     answer this: with `status-bar-style: black` iOS tells the engine the
+     viewport starts below the status bar and reports a zero inset, then paints
+     its band over the page anyway. */
+  height: var(--band);
   background-color: #0d0d10;
   /* over the app, under the sheets and toasts */
   z-index: 10;

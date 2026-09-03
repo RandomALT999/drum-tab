@@ -49,7 +49,9 @@ export function BottomSheet({ spec }: { spec: SheetSpec }) {
           maxWidth: 520,
           background: '#17171c',
           borderRadius: '18px 18px 0 0',
-          padding: '16px 16px 22px',
+          paddingTop: 16,
+          paddingLeft: 16,
+          paddingRight: 16,
           paddingBottom: `calc(14px + ${SAFE_BOTTOM})`,
           animation: 'rise .16s ease-out',
         }}

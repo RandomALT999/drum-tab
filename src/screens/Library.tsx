@@ -22,7 +22,9 @@ export function Library({ app }: { app: App }) {
       style={{
         width: '100%',
         maxWidth: 560,
-        padding: '22px 18px 40px',
+        paddingTop: 22,
+        paddingLeft: 18,
+        paddingRight: 18,
         paddingBottom: `calc(24px + ${SAFE_BOTTOM})`,
         display: 'flex',
         flexDirection: 'column',

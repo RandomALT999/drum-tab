@@ -127,7 +127,11 @@ export function PlayMode({ app }: { app: App }) {
           display: 'flex',
           flexWrap: st.compact ? 'nowrap' : 'wrap',
           gap: st.compact ? '0' : '10px 16px',
-          alignContent: 'flex-start',
+          // Upright, one bar is already as large as the pane's width allows,
+          // so the leftover height cannot be spent on it — centring at least
+          // stops it all pooling underneath. `safe` keeps the first bar
+          // reachable once there are enough of them to overflow.
+          alignContent: st.compact ? 'flex-start' : 'safe center',
           scrollSnapType: st.compact ? 'x mandatory' : undefined,
         }}
       >
@@ -200,7 +204,7 @@ export function PlayMode({ app }: { app: App }) {
           display: 'flex',
           justifyContent: 'center',
           gap: 22,
-          padding: '6px 0 10px',
+          paddingTop: 6,
           paddingBottom: SAFE_BOTTOM,
           font: '400 10px IBM Plex Mono,monospace',
           letterSpacing: '.12em',
