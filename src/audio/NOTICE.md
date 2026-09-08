@@ -1,85 +1,90 @@
 # Sound pack — `public/kit/`
 
-Built from the **Versilian Community Sample Library (VCSL)** by Versilian
-Studios, <https://github.com/sgossner/VCSL>, released under
-**CC0 1.0 Universal** — public domain. Nothing is owed for redistributing it,
-which is why it was chosen over the better-known free drum libraries: most are
-CC-BY-SA or "royalty free for music production", and neither survives being
-bundled into a public repo without conditions attached.
+Built from two sources.
 
-The instruments are concert percussion rather than a close-miked rock kit — a
-concert snare and toms, a hi-hat, and suspended cymbals standing in for ride
-and crash. That suits a notation tool: the strokes are clean and unprocessed,
-so what you hear is the rhythm rather than a producer's mix.
+## The kit — MuldjordKit (CC-BY 4.0)
+
+Kick, snare, hi-hat, ride (+ bell), crash and all three toms are
+**MuldjordKit**, recorded by Lars Muldjord for the DrumGizmo project —
+<https://github.com/sfzinstruments/DrumGizmo.MuldjordKit> — a Tama Superstar
+kit tracked during actual album sessions (Sepulchrum, 2010). Released under
+**Creative Commons Attribution 4.0**: redistributable, unlike most free drum
+libraries (which turn out to be CC-BY-SA or "royalty free for music
+production" — a license to use the sound in a song, not to hand the sound
+file itself to someone else's software), but it does require the credit
+above if this pack goes out publicly.
+
+The kit has two kicks, two rides and two crashes recorded; only the right-hand
+ride and right-hand crash are used below; the left ones, and the extra third
+rack tom, are unused rather than missing — see `scripts/build-kit.mjs` if a
+different pick is ever wanted. Every piece is real velocity layers and real
+round robins, close-miked per drum (crash and china have no dedicated mic —
+picked up on the stereo overheads instead, mixed to mono here).
 
 Sources per slot:
 
+| slot | MuldjordKit piece / mic |
+|---|---|
+| `kick` | KdrumR — hits 1 / 4 / 20 |
+| `snare` | Snare, top mic — hits 1 / 20 / 50 |
+| `hihat` | HihatClosed — hits 1 / 11 / 20 |
+| `hihat.open` | HihatOpen — hits 2 / 8 / 15 |
+| `ride` | RideR — hits 1 / 5 / 7 |
+| `ride.bell` | RideRBell, RideR mic — hits 1 / 5 / 7 |
+| `ride.crash` | RideR — hits 7 / 9, same recording as `ride`'s top layer, just given more room to ring (2.5s vs 1.5s) |
+| `crash` | CrashR — overheads L+R mixed to mono, hits 6 / 9 |
+| `tom.hi` | Tom1 — hits 1 / 5 / 7 |
+| `tom.mid` | Tom2 — hits 1 / 5 / 8 |
+| `tom.low` | Tom4 (the floor tom) — hits 1 / 6 / 9 |
+
+Hit numbers run soft to loud within a piece — confirmed against the kit's own
+SFZ region files, which group them into named velocity bands in that order —
+so a low/middle/high hit number is a real soft/medium/loud triad, not a guess
+from file order.
+
+## What MuldjordKit doesn't have — still VCSL (CC0)
+
+The snare rim shot, the snare cross-stick, the half-open hi-hat, and the
+hi-hat pedal chick were never recorded on this kit. Those four still come
+from the **Versilian Community Sample Library (VCSL)** by Versilian Studios,
+<https://github.com/sgossner/VCSL>, CC0 1.0 — public domain, nothing owed.
+
 | slot | VCSL instrument |
 |---|---|
-| `kick` | Bass Drum 1 — `BDrumNew_hit_v2/v3/v5` |
-| `snare` | Snare Drum, Modern 3 — `Snare4_HitSN_v2/v4/v5`, both round robins |
 | `snare.rim` | Snare Drum, Modern 3 — `Snare4_rimshot_v2/v4` |
 | `snare.xstick` | Snare Drum, Modern 3 — `Snare4_Xstick_v2_rr1/rr2` |
-| `hihat` | Hi-Hat Cymbal — `HiHat_HitC_v2/v3/v4`, both round robins |
-| `hihat.open` | Hi-Hat Cymbal — `HiHat_HitO_rr1/rr2` |
 | `hihat.half` | Hi-Hat Cymbal — `HiHat_HitLoose_rr1/rr2` |
-| `hhfoot` | Hi-Hat Cymbal — `HiHat_Close_rr1/rr2` (the pedal chick) |
-| `ride` | Suspended Cymbal 1 — `hit_stick_pp/mp/f`, ×1.22 speed |
-| `ride.bell` | Suspended Cymbal 2 — `hit_bell_p/f`, ×1.15 speed |
-| `ride.crash` | Suspended Cymbal 1 — `hit_stick_mp/f`, ×1.22, left ringing |
-| `crash` | Suspended Cymbal 1 — `hit_stick_mp/f`, ×0.88 speed |
-| `tom.hi` | Tom 1 Stick — `TomH_HitS_v2/v3/v4` |
-| `tom.low` | Tom 2 Stick — `TomL_HitS_v2/v3/v4` |
+| `hhfoot` | Hi-Hat Cymbal — `HiHat_Close_rr1/rr2` |
 
-Modern 3 is the snare because it is the only one in the library with a rim shot
-and a cross-stick alongside its plain hits — a rim shot recorded on a different
-drum than the notes around it is immediately obvious.
+The rim shot and cross-stick are consequently a different physical snare than
+the plain hit sitting next to them on the staff. Audible if you listen for
+it, but the alternative — no sound at all for those techniques — is worse.
+Fixing it properly means recording (or finding) a rim shot and cross-stick on
+the actual MuldjordKit snare, not a build-script change.
 
-The cymbals took three attempts, and the lesson was to go by what the
-recordings measure rather than by what they are called.
+## Build
 
-**Clash Cymbals are not a kit crash.** They are the orchestral pair struck
-together in two hands. The one bolted to a drum kit is a suspended cymbal hit
-hard with a stick.
-
-**`hit_f` / `hit_fff` are not strikes.** Their peak arrives 113–572ms after the
-sound begins, which is a mallet swell. Only the `hit_stick_` files have a real
-attack, at 1–2ms.
-
-That leaves one usable stick set, because Suspended Cymbal 2's is not
-well-behaved — its loudest layer measures duller and slower-attacked than its
-middle one, so hitting harder would have sounded softer:
-
-| | pp | mp | loudest |
-|---|---|---|---|
-| Cymbal 1, stick | 3579 Hz / 1ms | 4207 Hz / 2ms | 4277 Hz / 2ms |
-| Cymbal 2, stick | 5024 Hz / 96ms | 5631 Hz / 10ms | 4388 Hz / 75ms |
-
-So both cymbals are Cymbal 1's stick hits at different tape speeds, which is
-also the truth of it: pitch is most of what separates a ride from a crash. The
-built pack measures hi-hat 8166Hz, bell 4716, ride 4505 over 0.95s, crashed
-ride 4515 over 2.2s, crash 3844 over 2.8s — high and tight down to low and
-long, in the order a kit sits in.
-
-`scripts/build-kit.mjs` regenerates the pack: it fetches the sources, trims the
-leading silence, caps each length, fades the cut, downmixes to mono, resamples,
-peak-normalises **per slot** (one factor for all its layers, so the velocity
-differences survive) and encodes mono MP3 at 96kbps. It needs network, `ffmpeg`
-and `sox`. The output is committed, so a normal build never runs it.
+`scripts/build-kit.mjs` regenerates the pack: it fetches the sources, trims
+the leading silence, caps each length, fades the cut, downmixes to mono
+(summing both overhead mics at half gain each for the crash, so they can't
+clip), resamples, peak-normalises **per slot** (one factor for all its
+layers, so the velocity differences survive) and encodes mono MP3 at 96kbps.
+It needs network, `ffmpeg` and `sox`. The output is committed, so a normal
+build never runs it.
 
 Each slot's peak *before* normalising is kept in `pack.json`, because
-normalising is exactly what destroys the difference between a rim shot and a
-cross-stick. Within one instrument those peaks are comparable — same session,
-same mics — so the runtime uses the ratio to put the recorded balance back:
+normalising is exactly what destroys the difference between, say, a rim shot
+and a cross-stick. Within one instrument those peaks are comparable — same
+session, same mics — so the runtime (`src/audio/pack.ts`, `FAMILY`) uses the
+ratio to put the recorded balance back. The old VCSL-only pack needed a
+hand-set `TRIM` correction on top of that ratio for `ride.crash` and
+`ride.bell`, because both were borrowed from a different recording than the
+`ride` they sat next to — a pitch-shifted copy of the same take for one, an
+unrelated cymbal for the other — so their raw peaks didn't mean what a shared
+session's peaks normally mean. MuldjordKit's ride, bell and crashed-ride
+really are the same cymbal and the same session, so `TRIM` is empty now; the
+family ratio alone is correct.
 
-| | vs its plain stroke |
-|---|---|
-| rim shot | +3.0dB |
-| cross-stick | −12.9dB |
-| open hi-hat | +0.5dB |
-| half-open | +1.6dB |
-| pedal chick | −10.0dB |
-| ride bell | +4.3dB |
-
-Across instruments the peaks say nothing, so drum-against-drum balance is the
-hand-set gains in `src/audio/pack.ts`. Tune those and no re-encoding is needed.
+Across instruments — kick against snare against crash — the peaks say
+nothing, so that balance is the hand-set gains in `src/audio/pack.ts`. Tune
+those and no re-encoding is needed.

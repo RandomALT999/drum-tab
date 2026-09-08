@@ -1,7 +1,7 @@
 {
   "slots": {
     "kick": {
-      "peak": 0.3071,
+      "peak": 0.6045,
       "bands": [
         [
           "kick-0.mp3"
@@ -15,24 +15,21 @@
       ]
     },
     "snare": {
-      "peak": 0.1848,
+      "peak": 0.6972,
       "bands": [
         [
-          "snare-0a.mp3",
-          "snare-0b.mp3"
+          "snare-0.mp3"
         ],
         [
-          "snare-1a.mp3",
-          "snare-1b.mp3"
+          "snare-1.mp3"
         ],
         [
-          "snare-2a.mp3",
-          "snare-2b.mp3"
+          "snare-2.mp3"
         ]
       ]
     },
     "snare.rim": {
-      "peak": 0.2598,
+      "peak": 0.2597,
       "bands": [
         [
           "snare-rim-0a.mp3",
@@ -54,28 +51,30 @@
       ]
     },
     "hihat": {
-      "peak": 0.1906,
+      "peak": 0.2902,
       "bands": [
         [
-          "hihat-0a.mp3",
-          "hihat-0b.mp3"
+          "hihat-0.mp3"
         ],
         [
-          "hihat-1a.mp3",
-          "hihat-1b.mp3"
+          "hihat-1.mp3"
         ],
         [
-          "hihat-2a.mp3",
-          "hihat-2b.mp3"
+          "hihat-2.mp3"
         ]
       ]
     },
     "hihat.open": {
-      "peak": 0.2014,
+      "peak": 0.3433,
       "bands": [
         [
-          "hihat-open-0a.mp3",
-          "hihat-open-0b.mp3"
+          "hihat-open-0.mp3"
+        ],
+        [
+          "hihat-open-1.mp3"
+        ],
+        [
+          "hihat-open-2.mp3"
         ]
       ]
     },
@@ -98,7 +97,7 @@
       ]
     },
     "ride": {
-      "peak": 0.0561,
+      "peak": 0.1412,
       "bands": [
         [
           "ride-0.mp3"
@@ -112,18 +111,21 @@
       ]
     },
     "ride.bell": {
-      "peak": 0.1525,
+      "peak": 0.5594,
       "bands": [
         [
           "ride-bell-0.mp3"
         ],
         [
           "ride-bell-1.mp3"
+        ],
+        [
+          "ride-bell-2.mp3"
         ]
       ]
     },
     "ride.crash": {
-      "peak": 0.0561,
+      "peak": 0.1559,
       "bands": [
         [
           "ride-crash-0.mp3"
@@ -134,7 +136,7 @@
       ]
     },
     "crash": {
-      "peak": 0.0728,
+      "peak": 0.1716,
       "bands": [
         [
           "crash-0.mp3"
@@ -145,7 +147,7 @@
       ]
     },
     "tom.hi": {
-      "peak": 0.3075,
+      "peak": 0.3385,
       "bands": [
         [
           "tom-hi-0.mp3"
@@ -158,8 +160,22 @@
         ]
       ]
     },
+    "tom.mid": {
+      "peak": 0.3161,
+      "bands": [
+        [
+          "tom-mid-0.mp3"
+        ],
+        [
+          "tom-mid-1.mp3"
+        ],
+        [
+          "tom-mid-2.mp3"
+        ]
+      ]
+    },
     "tom.low": {
-      "peak": 0.3226,
+      "peak": 0.3445,
       "bands": [
         [
           "tom-low-0.mp3"

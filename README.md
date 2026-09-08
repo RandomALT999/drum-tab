@@ -47,9 +47,11 @@ and force-pushes the result to the `gh-pages` branch, which GitHub Pages serves
 No backend and no server state — everything lives in `localStorage` on the
 device, under the versioned keys `drumtab.lib.v7` / `drumtab.cur.v7`.
 
-- `public/kit/` — the sound pack: real recorded percussion with velocity
-  layers and round robins, built from the CC0 Versilian Community Sample
-  Library by `scripts/build-kit.mjs`. See `src/audio/NOTICE.md`. The
+- `public/kit/` — the sound pack: a real recorded rock kit (MuldjordKit, a
+  Tama Superstar, CC-BY 4.0) for the drums, cymbals and hi-hat, with a few
+  articulations it wasn't recorded with (rim shot, cross-stick, half-open
+  hi-hat, pedal chick) filled in from the CC0 Versilian Community Sample
+  Library — built by `scripts/build-kit.mjs`. See `src/audio/NOTICE.md`. The
   synthesised voices in `src/audio/kit.ts` remain the fallback.
 
 - `src/notation/` — the layout engine. `constants.ts` holds staff geometry and

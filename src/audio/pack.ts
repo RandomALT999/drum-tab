@@ -7,9 +7,10 @@ export const PACK_DIR = 'kit/';
  * Which slot of the pack each voice plays, which slots its techniques reach
  * for, and how loud the drum sits.
  *
- * `rate` retunes a shared slot: the pack has a high and a low concert tom, and
- * the middle one is the high tom dropped a little, which is roughly what a
- * third drum of an intermediate size sounds like anyway.
+ * No `rate` retune anywhere here any more: the old VCSL pack only had a high
+ * and a low concert tom, so the mid tom had to be the high tom dropped a
+ * little and stand in for a drum it wasn't. MuldjordKit was recorded with
+ * three hanging toms, so `midtom` now points at its own slot instead.
  */
 export const VOICE: Record<
   VoiceId,
@@ -33,7 +34,7 @@ export const VOICE: Record<
   },
   crash: { slot: 'crash', gain: 0.45 },
   hitom: { slot: 'tom.hi', gain: 0.78 },
-  midtom: { slot: 'tom.hi', gain: 0.8, rate: 0.84 },
+  midtom: { slot: 'tom.mid', gain: 0.8 },
   floor: { slot: 'tom.low', gain: 0.82 },
   // The pedal chick is a hi-hat sound and is balanced against the hats below,
   // which is where its ten decibels of restraint come from.
@@ -58,20 +59,18 @@ export const VOICE: Record<
 /**
  * Level a slot's recorded peak cannot speak for.
  *
- * The family ratio works because two slots are two different performances of
- * the same instrument. Crashing the ride is the same *recording* as riding it,
- * only left to ring instead of cut off after a tap — so their peaks are
- * identical and the ratio says they are equally loud, which is wrong twice
- * over. This is the part that has to be stated rather than measured.
+ * Empty for now. The old VCSL pack needed two entries here: `ride.crash` was
+ * the ride's own recording at a different tape speed, so its peak and the
+ * ride's peak were identical and said "equally loud" when crashing it should
+ * read louder; `ride.bell` came off an unrelated cymbal with no shared
+ * session to read a ratio from at all. MuldjordKit's ride, bell and "crashed"
+ * ride are now genuinely the same performances they claim to be — real
+ * harder hits on the real cymbal they belong to — so the family ratio in
+ * FAMILY below is the correct number on its own. Left in place, empty,
+ * because the next slot that borrows a recording from somewhere it doesn't
+ * belong will need it again.
  */
-export const TRIM: Record<string, number> = {
-  'ride.crash': 1.9,
-  // The bell is the one cymbal sound that comes off a different instrument
-  // from the line it belongs to, so there is no shared session to read a ratio
-  // from — its raw peak would have put it 8.7dB over a ride tap. A bell rings
-  // out above the ride, but by about this much.
-  'ride.bell': 1.5,
-};
+export const TRIM: Record<string, number> = {};
 
 export const FAMILY: Record<string, string> = {
   'snare.rim': 'snare',
@@ -79,10 +78,10 @@ export const FAMILY: Record<string, string> = {
   'hihat.open': 'hihat',
   'hihat.half': 'hihat',
   hhfoot: 'hihat',
-  // Not ride.bell: it is Suspended Cymbal 2 while the ride is Cymbal 1, and a
-  // peak ratio across two different recordings measures the mic gain, not the
-  // instrument. It takes a stated level instead — see TRIM.
   'ride.crash': 'ride',
+  // Now the same mic on the same cymbal as `ride`, unlike the old pack's
+  // borrowed bell — so this reads a real ratio too. See TRIM above.
+  'ride.bell': 'ride',
 };
 
 /**

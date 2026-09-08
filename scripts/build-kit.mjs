@@ -1,16 +1,26 @@
 /**
- * Builds the bundled sound pack from the Versilian Community Sample Library.
+ * Builds the bundled sound pack from two sources.
  *
- * VCSL is CC0-1.0 — public domain, no attribution required and nothing to
- * comply with when redistributing — which is why it is the source. It is also
- * real recorded percussion with velocity layers and round robins, so the pack
- * has dynamics and does not machine-gun on repeated hits.
+ * The kit itself — kick, snare, hi-hat, ride (+ bell), crash, and all three
+ * toms — comes from MuldjordKit: a real Tama Superstar rock/metal kit
+ * recorded by Lars Muldjord for the DrumGizmo project, CC-BY 4.0 (credit
+ * Lars Muldjord and the DrumGizmo team if this pack is ever redistributed
+ * publicly). Real velocity layers, real round robins, an actual ride and an
+ * actual crash — not a suspended concert cymbal standing in for one.
+ *
+ * A few articulations MuldjordKit was never recorded with — the snare rim
+ * shot, the snare cross-stick, the half-open hi-hat, and the hi-hat pedal
+ * chick — still come from the Versilian Community Sample Library (VCSL,
+ * CC0), same as before. Mixing sources for a snare's own rim shot and
+ * cross-stick means those two articulations are a different physical snare
+ * than the plain hit sitting next to them on the staff — audible if you
+ * listen for it, but the alternative was silence, which is worse.
  *
  * Run by hand, not from `npm run build`: it needs network, ffmpeg and sox, and
  * its output is committed. `node scripts/build-kit.mjs`
  *
  * What it does per slot:
- *   1. fetch the source WAVs (cached in the scratch dir between runs)
+ *   1. fetch the source WAV/FLACs (cached in the scratch dir between runs)
  *   2. trim the leading silence, cap the length, fade the cut, mono, resample
  *   3. peak-normalise the whole slot by ONE factor — per-file normalising would
  *      flatten the very velocity differences the layers exist to carry
@@ -34,37 +44,55 @@ const WORK = join(
   'Temp',
   'drumtab-kit',
 );
-const RAW = 'https://raw.githubusercontent.com/sgossner/VCSL/master/';
+const RAW = 'https://raw.githubusercontent.com/';
 
-const IDIO = 'Idiophones/Struck Idiophones/';
-const MEMB = 'Membranophones/Struck Membranophones/';
+const VCSL = 'sgossner/VCSL/master/';
+const IDIO = VCSL + 'Idiophones/Struck Idiophones/';
+const MEMB = VCSL + 'Membranophones/Struck Membranophones/';
+
+// MuldjordKit lives at DrumGizmo/MuldjordKit/Samples/<piece>/ inside its repo,
+// one FLAC per mic channel per recorded hit: `<hit>-<piece>-<mic>.flac`. Hit
+// numbers run soft to loud within a piece (confirmed against the kit's own
+// SFZ region files, which group them into named velocity bands in that
+// order) — so a low, middle and high hit number really is a soft/medium/loud
+// triad, not a guess from file order.
+const MULD = 'sfzinstruments/DrumGizmo.MuldjordKit/master/DrumGizmo/MuldjordKit/Samples/';
 
 /**
  * `bands` run quietest to loudest; the files inside one band are round robins
  * of the same stroke. `sec` is the hard length cap, `rate` the output sample
  * rate — 32k keeps cymbal sizzle, 22k is plenty for a kick and half the bytes.
+ *
+ * A band item is normally a filename, fetched and conditioned as one file.
+ * Where MuldjordKit has no dedicated close mic on a piece — true of both
+ * crashes — a band item can instead be `{ mix: [fileA, fileB] }`: two files
+ * fetched and summed to mono (each at half gain, so two full-scale mics
+ * cannot clip when added) before the usual trim/fade/normalise chain. The
+ * overheads are the closest thing a crash has to its own mic here.
  */
 const SLOTS = {
   kick: {
     sec: 0.5,
     rate: 22050,
-    src: MEMB + 'Bass Drum 1/',
-    bands: [['BDrumNew_hit_v2_rr1_Sum.wav'], ['BDrumNew_hit_v3_rr1_Sum.wav'], ['BDrumNew_hit_v5_rr1_Sum.wav']],
+    src: MULD + 'KdrumR/',
+    bands: [['1-KdrumR-KdrumR.flac'], ['4-KdrumR-KdrumR.flac'], ['20-KdrumR-KdrumR.flac']],
   },
   /*
-   * Modern 3 rather than Modern 1, which was the first choice: it is the only
-   * snare in the library with a rim shot and a cross-stick alongside its plain
-   * hits, so every articulation comes off the same drum. A rim shot recorded
-   * on a different snare than the notes around it is immediately obvious.
+   * MuldjordKit's own snare, but its rim shot and cross-stick below are still
+   * VCSL's Snare Drum Modern 3 — MuldjordKit was never recorded with either
+   * articulation, and no articulation at all is worse than one from a
+   * different snare. If that mismatch bothers the ear, the fix is recording
+   * (or finding) a rim shot and cross-stick on this actual kit, not a build
+   * script change.
    */
   snare: {
     sec: 0.42,
     rate: 32000,
-    src: MEMB + 'Snare Drum, Modern 3/',
+    src: MULD + 'Snare/',
     bands: [
-      ['Snare4_HitSN_v2_rr1_Mid.wav', 'Snare4_HitSN_v2_rr2_Mid.wav'],
-      ['Snare4_HitSN_v4_rr1_Mid.wav', 'Snare4_HitSN_v4_rr2_Mid.wav'],
-      ['Snare4_HitSN_v5_rr1_Mid.wav', 'Snare4_HitSN_v5_rr2_Mid.wav'],
+      ['1-Snare-Snare_top.flac'],
+      ['20-Snare-Snare_top.flac'],
+      ['50-Snare-Snare_top.flac'],
     ],
   },
   'snare.rim': {
@@ -86,22 +114,21 @@ const SLOTS = {
   hihat: {
     sec: 0.19,
     rate: 32000,
-    src: IDIO + 'Hi-Hat Cymbal/',
+    src: MULD + 'HihatClosed/',
     bands: [
-      ['HiHat_HitC_v2_rr1_Mid.wav', 'HiHat_HitC_v2_rr2_Mid.wav'],
-      ['HiHat_HitC_v3_rr1_Mid.wav', 'HiHat_HitC_v3_rr2_Mid.wav'],
-      ['HiHat_HitC_v4_rr1_Mid.wav', 'HiHat_HitC_v4_rr2_Mid.wav'],
+      ['1-HihatClosed-Hihat.flac'],
+      ['11-HihatClosed-Hihat.flac'],
+      ['20-HihatClosed-Hihat.flac'],
     ],
   },
-  // One band, two round robins: an open hat is one sound, but repeated ones
-  // machine-gun badly without an alternate take.
   'hihat.open': {
     sec: 0.85,
     rate: 32000,
-    src: IDIO + 'Hi-Hat Cymbal/',
-    bands: [['HiHat_HitO_rr1_Mid.wav', 'HiHat_HitO_rr2_Mid.wav']],
+    src: MULD + 'HihatOpen/',
+    bands: [['2-HihatOpen-Hihat.flac'], ['8-HihatOpen-Hihat.flac'], ['15-HihatOpen-Hihat.flac']],
   },
-  // Half-open: the loose stroke, shorter and dirtier than a full open hat.
+  // Half-open: MuldjordKit only has fully closed and fully open, so this one
+  // — like the hi-hat foot below — still comes from VCSL's hi-hat.
   'hihat.half': {
     sec: 0.42,
     rate: 32000,
@@ -110,6 +137,7 @@ const SLOTS = {
   },
   // The pedal "chick" — foot closing the hats, with no stick involved. Its own
   // voice on the staff, below the kick, so it can sound under a hand stroke.
+  // Not in MuldjordKit either, so this is VCSL too.
   hhfoot: {
     sec: 0.3,
     rate: 32000,
@@ -117,83 +145,80 @@ const SLOTS = {
     bands: [['HiHat_Close_rr1_Mid.wav', 'HiHat_Close_rr2_Mid.wav']],
   },
   /*
-   * The cymbals, third attempt, and this time from what the recordings
-   * actually are rather than from what they are called.
-   *
-   * Clash Cymbals are the orchestral pair struck together in two hands. They
-   * are a crash in the concert sense and nothing like the one bolted to a kit,
-   * which is a suspended cymbal hit hard with a stick — so those are gone.
-   *
-   * `hit_f`/`hit_fff` are not strikes either: their peak arrives 113-572ms
-   * after the sound starts, which is a mallet swell, not a stick. Only the
-   * `hit_stick_` files have a real attack (1-2ms).
-   *
-   * That leaves one usable stick set. Suspended Cymbal 2's is not it — its
-   * loudest layer measures duller and slower-attacked than its middle one, so
-   * hitting harder would have sounded softer. Cymbal 1's runs 3579 → 4207 →
-   * 4277Hz across pp/mp/f at a uniform 1-2ms, which is a well-behaved velocity
-   * set, and it is the only one.
-   *
-   * So both cymbals are that recording at different tape speeds — which is
-   * also the truth of it, since pitch is most of what separates a ride from a
-   * crash. Up for the ride: brighter and shorter, a defined tap. Down for the
-   * crash: bigger, longer, more wash. The bell keeps Cymbal 2's, the brighter
-   * of the two bells, lifted so it pings above the ride rather than under it.
+   * The kit has two real rides and two real crashes. Only one of each fits
+   * the app's single ride/crash voices, so the right-side ride and the
+   * right-side crash were picked — the left ones are unused, not missing;
+   * the raw library still has them if a future pass wants a different pair.
    */
   ride: {
-    sec: 0.95,
+    sec: 1.5,
     rate: 32000,
-    speed: 1.22,
-    src: IDIO + 'Suspended Cymbal 1/',
-    bands: [
-      ['susCymb1_hit_stick_pp1.wav'],
-      ['susCymb1_hit_stick_mp1.wav'],
-      ['susCymb1_hit_stick_f1.wav'],
-    ],
+    src: MULD + 'RideR/',
+    bands: [['1-RideR-RideR.flac'], ['5-RideR-RideR.flac'], ['7-RideR-RideR.flac']],
   },
+  // Same mic, same physical cymbal as `ride` — unlike the old VCSL pack,
+  // where the bell had to be borrowed from an unrelated instrument, this
+  // bell actually belongs to the ride it sits next to. See FAMILY in pack.ts:
+  // that shared session is what lets the bell's level be read from its own
+  // recorded peak instead of a hand-set number.
   'ride.bell': {
     sec: 1.2,
     rate: 32000,
-    speed: 1.15,
-    src: IDIO + 'Suspended Cymbal 2/',
-    bands: [['susCymb2_hit_bell_p1.wav'], ['susCymb2_hit_bell_f1.wav']],
+    src: MULD + 'RideRBell/',
+    bands: [['1-RideRBell-RideR.flac'], ['5-RideRBell-RideR.flac'], ['7-RideRBell-RideR.flac']],
   },
-  // Crashing the ride: the same cymbal at the same pitch as the ride, hit
-  // hard and left to ring instead of being cut off after a tap.
+  /*
+   * Crashing the ride: literally the ride's own loudest recorded hits again,
+   * just given more room to ring (2.5s instead of 1.5s) instead of being cut
+   * short. The old VCSL pack had to fake this with a pitch/tempo trick because
+   * its only cymbal recording didn't have a genuinely harder hit to reach for;
+   * this one does, so the trick is gone and TRIM['ride.crash'] in pack.ts goes
+   * with it — the family ratio alone is now the correct model, because this
+   * really is the same performance the plain ride reaches for at max velocity.
+   */
   'ride.crash': {
-    sec: 2.2,
+    sec: 2.5,
     rate: 32000,
-    speed: 1.22,
-    src: IDIO + 'Suspended Cymbal 1/',
-    bands: [['susCymb1_hit_stick_mp1.wav'], ['susCymb1_hit_stick_f1.wav']],
+    src: MULD + 'RideR/',
+    bands: [['7-RideR-RideR.flac'], ['9-RideR-RideR.flac']],
   },
-  // The kit crash: a bigger, lower cymbal, hit hard and left to wash out.
+  // The kit crash: MuldjordKit close-mics every drum and the hi-hat and both
+  // rides, but not the crashes — only the stereo overheads catch them, so
+  // that's what's mixed down to mono here.
   crash: {
     sec: 2.8,
     rate: 32000,
-    speed: 0.88,
-    src: IDIO + 'Suspended Cymbal 1/',
-    bands: [['susCymb1_hit_stick_mp1.wav'], ['susCymb1_hit_stick_f1.wav']],
+    src: MULD + 'CrashR/',
+    bands: [
+      [{ mix: ['6-CrashR-OHL.flac', '6-CrashR-OHR.flac'] }],
+      [{ mix: ['9-CrashR-OHL.flac', '9-CrashR-OHR.flac'] }],
+    ],
   },
   'tom.hi': {
     sec: 0.6,
     rate: 22050,
-    src: MEMB + 'Tom 1/Stick/',
-    bands: [
-      ['TomH_HitS_v2_rr1_Mid.wav'],
-      ['TomH_HitS_v3_rr1_Mid.wav'],
-      ['TomH_HitS_v4_rr1_Mid.wav'],
-    ],
+    src: MULD + 'Tom1/',
+    bands: [['1-Tom1-Tom1.flac'], ['5-Tom1-Tom1.flac'], ['7-Tom1-Tom1.flac']],
+  },
+  /*
+   * MuldjordKit has three hanging toms, not two — so unlike the old VCSL
+   * pack, the mid tom no longer has to be the high tom pitched down and
+   * faked. This is Tom1/Tom2/Tom4's own middle drum, genuinely recorded.
+   * Tom3 (a fourth, extra rack tom) goes unused: the app only has three tom
+   * voices to fill. See VOICE.midtom in pack.ts — it points here now, gain
+   * only, no `rate` retune.
+   */
+  'tom.mid': {
+    sec: 0.65,
+    rate: 22050,
+    src: MULD + 'Tom2/',
+    bands: [['1-Tom2-Tom2.flac'], ['5-Tom2-Tom2.flac'], ['8-Tom2-Tom2.flac']],
   },
   'tom.low': {
     sec: 0.7,
     rate: 22050,
-    src: MEMB + 'Tom 2/Stick/',
-    bands: [
-      ['TomL_HitS_v2_rr1_Mid.wav'],
-      ['TomL_HitS_v3_rr1_Mid.wav'],
-      ['TomL_HitS_v4_rr1_Mid.wav'],
-    ],
+    src: MULD + 'Tom4/',
+    bands: [['1-Tom4-Tom4.flac'], ['6-Tom4-Tom4.flac'], ['9-Tom4-Tom4.flac']],
   },
 };
 
@@ -208,6 +233,27 @@ async function fetchSrc(path) {
   if (!r.ok) throw new Error(`${r.status} ${url}`);
   writeFileSync(cache, Buffer.from(await r.arrayBuffer()));
   return cache;
+}
+
+/** A band item is a filename, or `{ mix: [fileA, fileB] }` for a piece with no
+ * dedicated close mic — see the SLOTS doc comment above. Returns a label
+ * (for temp-file naming) and the fetched-and-possibly-mixed source path. */
+async function resolveItem(src, item) {
+  if (typeof item === 'string') {
+    return { label: item, path: await fetchSrc(src + item) };
+  }
+  const [a, b] = item.mix;
+  const pathA = await fetchSrc(src + a);
+  const pathB = await fetchSrc(src + b);
+  const label = item.mix.join('+');
+  const tmp = join(WORK, 'src', 'mix-' + label.replace(/[^A-Za-z0-9._-]/g, '_') + '.wav');
+  if (!existsSync(tmp)) {
+    // Half gain on each side before summing: two full-scale mics added at
+    // full gain would clip, and clipping baked in here survives the
+    // peak-normalising step downstream — that only scales, it cannot un-clip.
+    sh('sox', ['-m', '-v', '0.5', pathA, '-v', '0.5', pathB, tmp]);
+  }
+  return { label, path: tmp };
 }
 
 /**
@@ -236,9 +282,9 @@ async function main() {
     const conditioned = [];
     for (const band of spec.bands) {
       const row = [];
-      for (const name of band) {
-        const src = await fetchSrc(spec.src + name);
-        const tmp = join(WORK, 'cond', `${slot}-${name}`.replace(/[^A-Za-z0-9._-]/g, '_') + '.wav');
+      for (const item of band) {
+        const { label, path: src } = await resolveItem(spec.src, item);
+        const tmp = join(WORK, 'cond', `${slot}-${label}`.replace(/[^A-Za-z0-9._-]/g, '_') + '.wav');
         sh('sox', [
           src,
           '-c', '1',
@@ -246,8 +292,7 @@ async function main() {
           '-b', '16',
           tmp,
           // Tape-speed shift: resamples, so pitch and length move together —
-          // which is what separates a ride from a crash struck off the same
-          // recording. Up is brighter and shorter, down bigger and longer.
+          // used where a slot has to reach a pitch its own recording isn't at.
           ...(spec.speed ? ['speed', String(spec.speed)] : []),
           // leading silence first, so the length cap measures from the attack
           'silence', '1', '0.001', '-55d',
@@ -255,7 +300,7 @@ async function main() {
           // 40ms out, or cutting a ringing cymbal mid-cycle clicks
           'fade', '0', String(spec.sec), '0.04',
         ]);
-        row.push({ tmp, name });
+        row.push({ tmp, name: label });
       }
       conditioned.push(row);
     }
